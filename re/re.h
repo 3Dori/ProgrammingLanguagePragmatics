@@ -36,10 +36,13 @@ struct NFANode {
         transitions.emplace_back(sym, to);
     }
 
-    static NFANodeSP constructNFA(const std::string& re);
+    static NFANodeSP constructNFA(const std::string& re) {
+        return constructNFA(re.c_str(), 0, re.size());
+    }
 
 private:
-    static uint32_t findRightParen(const std::string&, uint32_t);
+    static NFANodeSP constructNFA(const char*, uint32_t, uint32_t);
+    static uint32_t findRightParen(const char*, uint32_t);
 
 private:
     // TODO support escape
