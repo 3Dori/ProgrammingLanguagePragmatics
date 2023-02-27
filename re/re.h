@@ -1,13 +1,13 @@
 #pragma once
 
 #include <vector>
+#include <set>
+#include <map>
 #include <memory>
 #include <string>
 #include <exception>
 
 namespace Re {
-
-static constexpr char EPS = 0;
 
 class ReException : public std::runtime_error {
 public:
@@ -20,36 +20,41 @@ public:
 };
 
 struct NFANode;
+struct DFANode;
 using NFANodeSP = std::shared_ptr<NFANode>;
+using DFANodeSP = std::shared_ptr<DFANode>;
 
-struct Transition {
-    Transition(const char sym, NFANodeSP to) : sym(sym), to(to) {}
-
-    char sym;
-    NFANodeSP to;
-};
-
+// TODO loops cause memory leak
 struct NFANode {
+    bool isFinal;
+    struct Transition {
+        char sym;
+        NFANodeSP to;
+    };
     std::vector<Transition> transitions;
 
-    void addTransition(const char sym, NFANodeSP to = nullptr) {
-        transitions.emplace_back(sym, to);
-    }
+    NFANode(bool isFinal) : isFinal(isFinal) {}
 
-    static NFANodeSP constructNFA(const std::string& re) {
-        return constructNFA(re.c_str(), 0, re.size());
+    void addTransition(const char sym, const NFANodeSP& to) {
+        transitions.push_back({sym, to});
     }
+};
+
+struct DFANode {
+    bool isFinal;
+    std::map<char, DFANodeSP> transitions;
+    std::set<NFANodeSP> NFANodes;
+
+    DFANode(bool isFinal) : isFinal(isFinal) {}
+
+    static DFANodeSP NFAToDFA(const NFANodeSP& nfa);
 
 private:
-    static NFANodeSP constructNFA(const char*, uint32_t, uint32_t);
-    static uint32_t findRightParen(const char*, uint32_t);
-
-private:
-    // TODO support escape
-    static constexpr char LEFT_PAREN = '(';
-    static constexpr char RIGHT_PAREN = ')';
-    static constexpr char BAR = '|';
-    static constexpr char KLEENE_STAR = '*';
+    void addTransition(const char sym, const NFANodeSP& to);
+    void bypassEPS(const NFANodeSP&);
+    void bfsNFAToDFA();
+    bool hasState(const NFANodeSP&) const;
+    bool hasTransition(const char) const;
 };
 
 }
