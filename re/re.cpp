@@ -1,3 +1,4 @@
+#include "NodeManager.h"
 #include "re.h"
 
 #include <iostream>
@@ -6,21 +7,10 @@
 
 namespace Re {
 
-constexpr char EPS = 0;
-constexpr char LEFT_PAREN = '(';
-constexpr char RIGHT_PAREN = ')';
-constexpr char BAR = '|';
-constexpr char KLEENE_STAR = '*';
+struct ReParser;
+using RePreSP = std::unique_ptr<ReParser>;
 
-struct NFA {
-    NFANodeSP startNode;
-    NFANodeSP endNode;
-};
-
-struct RePre;
-using RePreSP = std::unique_ptr<RePre>;
-
-struct RePre {
+struct ReParser {
     enum class Type {
         concatenation,
         alternation,
@@ -30,60 +20,14 @@ struct RePre {
     uint32_t end;
     std::vector<RePreSP> pres;
 
-    RePre(const Type type, const uint32_t start, const uint32_t end)
+    ReParser(const Type type, const uint32_t start, const uint32_t end)
         : type(type), start(start), end(end)
     {}
 
     static RePreSP makeRePre(const Type type, const uint32_t start, const uint32_t end) {
-        return std::make_unique<RePre>(type, start, end);
+        return std::make_unique<ReParser>(type, start, end);
     }
 };
-
-template <typename AutomataNode>
-std::shared_ptr<AutomataNode> makeNode(bool isFinal = false) {
-    return std::make_shared<AutomataNode>(isFinal);
-}
-
-NFA makeSym(const char sym) {
-    auto startNode = makeNode<NFANode>();
-    auto endNode = makeNode<NFANode>(true);
-    startNode->addTransition(sym, endNode);
-    return {startNode, endNode};
-}
-
-NFA makeConcatenation(NFA& a, NFA& b) {
-    // TODO copy all b.startNode's transitions to a.endNode
-    a.endNode->isFinal = false;
-    a.endNode->addTransition(EPS, b.startNode);
-    return {a.startNode, b.endNode};
-}
-
-NFA makeAlternation(std::vector<NFA>& nodes) {
-    auto startNode = makeNode<NFANode>();
-    auto endNode = makeNode<NFANode>(true);
-
-    for (auto& node : nodes) {
-        node.endNode->isFinal = false;
-        startNode->addTransition(EPS, node.startNode);
-        node.endNode->addTransition(EPS, endNode);
-    }
-
-    return {startNode, endNode};
-}
-
-NFA makeKleeneClousure(NFA& nfa) {
-    auto startNode = makeNode<NFANode>();
-    auto endNode = makeNode<NFANode>(true);
-
-    nfa.endNode->isFinal = false;
-
-    startNode->addTransition(EPS, nfa.startNode);
-    startNode->addTransition(EPS, endNode);
-    nfa.endNode->addTransition(EPS, nfa.startNode);
-    nfa.endNode->addTransition(EPS, endNode);
-
-    return {startNode, endNode};
-}
 
 int32_t findRightParen(const char* re, uint32_t start) {
     auto numParenthesis = 0u;
@@ -119,9 +63,9 @@ RePreSP parseReToPre(const char* re, uint32_t start, uint32_t end) {
         {
         case LEFT_PAREN: {
             auto end = findRightParen(re, start);
-            auto rePre = RePre::makeRePre(RePre::Type::concatenation, start+1, end-1);
+            auto rePre = ReParser::makeRePre(ReParser::Type::concatenation, start+1, end-1);
             if (re[end+1] == KLEENE_STAR) {
-                rePre->type = RePre::Type::kleene_closure;
+                rePre->type = ReParser::Type::kleene_closure;
             }
             start = end;
         }
@@ -134,62 +78,29 @@ RePreSP parseReToPre(const char* re, uint32_t start, uint32_t end) {
     }
 }
 
-void DFANode::addTransition(const char sym, const NFANodeSP& to) {
-    if (not hasTransition(sym)) {
-        transitions[sym] = DFANodeSP{new DFANode(false)};
+void DFANode::bypassEPS(NFANode* nfaNode) {
+    if (nfaNode->m_isFinal) {
+        m_isFinal = true;
     }
-    transitions[sym]->NFANodes.insert(to);
-    transitions[sym]->bypassEPS(to);
-}
+    m_NFANodes[nfaNode->m_id] = true;
+    m_NFANodeSet.insert(nfaNode);
 
-// TODO possible infinite loop? FIXED by checking containment
-void DFANode::bypassEPS(const NFANodeSP& nfa) {
-    for (const auto& transition : nfa->transitions) {
-        if (transition.sym == EPS and
-            not hasState(transition.to))
-        {
-            NFANodes.insert(transition.to);
-            bypassEPS(transition.to);  // in a DFS manner
+    const auto& tos = nfaNode->transitions[EPS];
+    for (auto* to : tos) {  // in a DFS manner
+        if (not m_NFANodes[to->m_id]) {
+            bypassEPS(to);
         }
     }
 }
 
-void DFANode::bfsNFAToDFA() {
-    for (const auto& nfaNode : NFANodes) {
-        // TODO check duplicates of states
-        for (const auto& [sym, to] : nfaNode->transitions) {
-            if (sym == EPS) {
-                continue;
-            }
-            if (hasTransition(sym) and transitions[sym]->hasState(to)) {
-                continue;
-            }
-            else {
-                addTransition(sym, to);
-            }
-        }
-    }
-    // TODO infinite loop when a node has a transition to itself
-    for (auto& [_, to] : transitions) {
-        to->bfsNFAToDFA();
-    }
-}
+// DFANode* DFANode::NFAToDFA(const NFANode* nfa) {
+//     // DFANode* start = makeNode<DFANode>();
 
-DFANodeSP DFANode::NFAToDFA(const NFANodeSP& nfa) {
-    DFANodeSP start = makeNode<DFANode>();
-    start->NFANodes.insert(nfa);
-    start->bypassEPS(nfa);
-    start->bfsNFAToDFA();
-    return start;
-}
-
-bool DFANode::hasState(const NFANodeSP& nfa) const {
-    return NFANodes.contains(nfa);
-}
-
-bool DFANode::hasTransition(const char sym) const {
-    return transitions.contains(sym);
-}
+//     start->NFANodes.insert(nfa);
+//     start->bypassEPS(nfa);
+//     start->bfsNFAToDFA();
+//     return start;
+// }
 
 // NFANodeSP constructNFA(const char* re, uint32_t start, uint32_t end) {
 //     auto startNode = NFANodeSP{new NFANode()};

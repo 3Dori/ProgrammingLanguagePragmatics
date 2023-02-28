@@ -1,13 +1,20 @@
 #pragma once
 
+#include "NodeManager.h"
+
 #include <vector>
-#include <set>
-#include <map>
-#include <memory>
+#include <unordered_set>
+#include <unordered_map>
 #include <string>
 #include <exception>
 
 namespace Re {
+
+constexpr char EPS = 0;
+constexpr char LEFT_PAREN = '(';
+constexpr char RIGHT_PAREN = ')';
+constexpr char BAR = '|';
+constexpr char KLEENE_STAR = '*';
 
 class ReException : public std::runtime_error {
 public:
@@ -19,42 +26,48 @@ public:
     explicit ParenthesisMatchingException(const std::string& message) : ReException(message) {}
 };
 
-struct NFANode;
-struct DFANode;
-using NFANodeSP = std::shared_ptr<NFANode>;
-using DFANodeSP = std::shared_ptr<DFANode>;
+class NFANumLimitExceededExpection : public ReException {
+public:
+    explicit NFANumLimitExceededExpection(const std::string& message) : ReException(message) {}
+};
 
-// TODO loops cause memory leak
 struct NFANode {
-    bool isFinal;
-    struct Transition {
-        char sym;
-        NFANodeSP to;
-    };
-    std::vector<Transition> transitions;
+    NFANode(const size_t id, const bool isFinal) : m_id(id), m_isFinal(isFinal) {}
 
-    NFANode(bool isFinal) : isFinal(isFinal) {}
+    size_t m_id;
+    bool m_isFinal;
+    std::unordered_map<char, std::vector<NFANode*>> transitions;
 
-    void addTransition(const char sym, const NFANodeSP& to) {
-        transitions.push_back({sym, to});
+    void addTransition(const char sym, NFANode* to) {
+        transitions[sym].push_back(to);
     }
 };
 
 struct DFANode {
-    bool isFinal;
-    std::map<char, DFANodeSP> transitions;
-    std::set<NFANodeSP> NFANodes;
+    bool m_isFinal = false;
+    std::unordered_map<char, DFANode*> m_transitions;
+    NodeManager::NFASet m_NFANodes;   // id of a DFA node
+    std::unordered_set<NFANode*> m_NFANodeSet;  // easy accessor to NFA nodes
 
-    DFANode(bool isFinal) : isFinal(isFinal) {}
+    bool operator==(const DFANode& other) {
+        return (m_isFinal == other.m_isFinal and
+                m_NFANodes == other.m_NFANodes);
+    }
 
-    static DFANodeSP NFAToDFA(const NFANodeSP& nfa);
+    void addTransition(const char sym, DFANode* to) {
+        assert(sym != EPS);
+        m_transitions[sym] = to;
+    }
 
-private:
-    void addTransition(const char sym, const NFANodeSP& to);
-    void bypassEPS(const NFANodeSP&);
-    void bfsNFAToDFA();
-    bool hasState(const NFANodeSP&) const;
-    bool hasTransition(const char) const;
+    bool hasState(NFANode* nfaNode) const {
+        return m_NFANodes[nfaNode->m_id];
+    }
+
+    bool hasTransition(const char sym) const {
+        return m_transitions.contains(sym);
+    }
+
+    void bypassEPS(NFANode*);
 };
 
 }
