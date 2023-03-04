@@ -49,4 +49,4 @@ struct DFANode {
     void bypassEPS(NFANode*);
 };
 
-}  // namespace Re
+} // namespace Re

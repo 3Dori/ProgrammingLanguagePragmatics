@@ -17,4 +17,4 @@ void DFANode::bypassEPS(NFANode* nfaNode) {
     }
 }
 
-}  // namespace Re
+} // namespace Re

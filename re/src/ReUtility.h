@@ -29,4 +29,4 @@ public:
     explicit NFANumLimitExceededExpection(const std::string& message) : ReException(message) {}
 };
 
-}  // namespace Re
+} // namespace Re
