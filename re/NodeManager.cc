@@ -52,21 +52,19 @@ NodeManager::NFA NodeManager::makeKleeneClousure(NFA& nfa) {
     return {startNode, endNode};
 }
 
-DFANode* NodeManager::makeDFANode(NFANode* nfaNode) {
-    DFANode dfaNode;
-    dfaNode.bypassEPS(nfaNode);
-    return createDFANodeIfNotExists(dfaNode);
-}
+// DFANode* NodeManager::makeDFANode(NFANode* nfaNode) {
+//     DFANode dfaNode;
+//     dfaNode.bypassEPS(nfaNode);
+//     return createDFANodeIfNotExists(dfaNode);
+// }
 
 DFANode* NodeManager::makeDFANode(const std::vector<NFANode*>& nfaNodes) {
     DFANode dfaNode;
     for (auto* nfaNode : nfaNodes) {
         dfaNode.bypassEPS(nfaNode);
     }
-    return createDFANodeIfNotExists(dfaNode);
-}
 
-DFANode* NodeManager::createDFANodeIfNotExists(const DFANode& dfaNode) {
+    // create a DFA node if it doesn't exist
     const auto NFANodesInvolved = dfaNode.m_NFANodes;
     if (not m_DFAs.contains(NFANodesInvolved)) {
         m_DFAs[NFANodesInvolved] = dfaNode;

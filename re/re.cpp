@@ -1,5 +1,6 @@
+#include "ReUtility.h"
+#include "FA.h"
 #include "NodeManager.h"
-#include "re.h"
 
 #include <iostream>
 #include <vector>
@@ -75,21 +76,6 @@ RePreSP parseReToPre(const char* re, uint32_t start, uint32_t end) {
             break;
         }
         start++;
-    }
-}
-
-void DFANode::bypassEPS(NFANode* nfaNode) {
-    if (nfaNode->m_isFinal) {
-        m_isFinal = true;
-    }
-    m_NFANodes[nfaNode->m_id] = true;
-    m_NFANodeSet.insert(nfaNode);
-
-    const auto& tos = nfaNode->transitions[EPS];
-    for (auto* to : tos) {  // in a DFS manner
-        if (not m_NFANodes[to->m_id]) {
-            bypassEPS(to);
-        }
     }
 }
 
