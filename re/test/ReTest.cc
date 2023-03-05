@@ -19,11 +19,19 @@ TEST(ReTest, CanParseAndMatchExactBasicSym_2) {
     EXPECT_FALSE(parser.matchExact("bbbbbbbbbbbbbb"));
 }
 
+TEST(ReTest, CanParseAndMatchExactEmptyRe) {
+    Re::ReParser parser("");
+    EXPECT_TRUE(parser.matchExact(""));
+    EXPECT_FALSE(parser.matchExact("aa"));
+}
+
 TEST(ReTest, KleeneStarExceptions) {
     EXPECT_THROW(Re::ReParser parser("1**"), Re::MultipleRepeatException);
     EXPECT_THROW(Re::ReParser parser("1*2**"), Re::MultipleRepeatException);
+    EXPECT_THROW(Re::ReParser parser("1*2***"), Re::MultipleRepeatException);
     EXPECT_THROW(Re::ReParser parser("*123"), Re::NothingToRepeatException);
     EXPECT_THROW(Re::ReParser parser("*"), Re::NothingToRepeatException);
+    EXPECT_THROW(Re::ReParser parser("**"), Re::NothingToRepeatException);
     // TODO more cases
 }
 

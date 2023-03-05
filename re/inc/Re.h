@@ -26,12 +26,12 @@ struct NodeManager {
         } type;
     };
 
-    DFANode* DFAFromNFA(NFANode*);
+private:
+    DFANode* DFAFromNFA(NFANode*);  // TODO simplify DFA
     NFANode* NFAFromRe(std::string_view);
 
-private:
     NFANode* makeNFANode(const bool isFinal = false);
-    NFA makeSym(const char sym);
+    NFA makeSymol(const char sym);
     NFA makeConcatenation(NFA& a, NFA& b);
     NFA makeAlternation(std::vector<NFA>& nodes);
     NFA makeKleeneClousure(NFA& nfa);

@@ -13,9 +13,6 @@ namespace Re {
 
 // NFA
 NFANode* NodeManager::NFAFromRe(std::string_view re) {
-    if (re.size() == 0) {
-        throw EmptyReExpection("The regular expression is empty");
-    }
     std::vector<NFA> nfas;
     for (auto pos = 0u; pos < re.size(); ++pos) {
         const auto c = re[pos];
@@ -39,11 +36,10 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             break;
         }
         default:
-            nfas.push_back(makeSym(c));
+            nfas.push_back(makeSymol(c));
             break;
         }
     }
-    assert(nfas.size() >= 1 and "There must be at least one nfa");
     // TODO investigate it
     // NFA emptyNfa;
     // NFA nfa = std::accumulate(nfas.begin(), nfas.end(), emptyNfa,
@@ -54,6 +50,9 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
     NFA resultNfa;
     for (auto& nfa : nfas) {
         resultNfa = makeConcatenation(resultNfa, nfa);
+    }
+    if (resultNfa.startNode == nullptr) {
+        return makeNFANode(true);
     }
     return resultNfa.startNode;
 }
@@ -67,7 +66,7 @@ NFANode* NodeManager::makeNFANode(const bool isFinal) {
     return &(m_NFAs.back());
 }
 
-NodeManager::NFA NodeManager::makeSym(const char sym) {
+NodeManager::NFA NodeManager::makeSymol(const char sym) {
     auto startNode = makeNFANode();
     auto endNode = makeNFANode(true);
     startNode->addTransition(sym, endNode);

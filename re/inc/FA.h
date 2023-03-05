@@ -41,14 +41,14 @@ struct DFANode {
                 m_NFANodes == other.m_NFANodes);
     }  // TODO remove and corresponding assert
 
-    bool accept(std::string_view str) {
-        DFANode* node = this;
+    bool accept(std::string_view str) const {
+        DFANode const* node = this;
         for (const auto c : str) {
             if (not node->hasTransition(c)) {
                 return false;
             }
             else {
-                node = node->m_transitions[c];
+                node = node->m_transitions.at(c);
             }
         }
         return node->m_isFinal;

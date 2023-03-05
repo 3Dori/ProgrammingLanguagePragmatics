@@ -57,11 +57,6 @@ public:
     {}
 };
 
-class EmptyReExpection : public ReException {
-public:
-    explicit EmptyReExpection(const std::string& message) : ReException(message) {}
-};
-
 class MultipleRepeatException : public ReException {
 public:
     explicit MultipleRepeatException(const size_t pos) :
