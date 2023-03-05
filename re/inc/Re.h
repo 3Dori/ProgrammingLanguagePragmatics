@@ -17,6 +17,13 @@ struct NodeManager {
     struct NFA {
         NFANode* startNode = nullptr;
         NFANode* endNode = nullptr;
+        enum class Type {
+            symbol,
+            concatenation,
+            kleene_star,
+            alternation,
+            unimplemented
+        } type;
     };
 
     DFANode* DFAFromNFA(NFANode*);

@@ -17,16 +17,27 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         throw EmptyReExpection("The regular expression is empty");
     }
     std::vector<NFA> nfas;
-    for (const auto c : re) {
+    for (auto pos = 0u; pos < re.size(); ++pos) {
+        const auto c = re[pos];
         switch (c)
         {
         case EPS:
         case LEFT_PAREN:
         case RIGHT_PAREN:
         case BAR:
-        case KLEENE_STAR:
             assert(false and "Unimplemented");
+        case KLEENE_STAR: {
+            if (nfas.size() == 0) {
+                throw NothingToRepeatException(pos);
+            }
+            NFA lastNfa = nfas.back();
+            if (lastNfa.type == NFA::Type::kleene_star) {
+                throw MultipleRepeatException(pos);
+            }
+            nfas.pop_back();
+            nfas.push_back(makeKleeneClousure(lastNfa));
             break;
+        }
         default:
             nfas.push_back(makeSym(c));
             break;
@@ -49,7 +60,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
 
 NFANode* NodeManager::makeNFANode(const bool isFinal) {
     if (m_NFAs.size() >= MAX_NFA_NODE_NUM) {
-        throw NFANumLimitExceededExpection("The limit of number of NFA nodes is exceeded");
+        throw NFANumLimitExceededExpection();
     }
     m_NFAs.emplace_back(m_NFAs.size(), isFinal);
     assert(m_NFAs.back().m_id == m_NFAs.size() - 1 and "Wrong NFANode id");
@@ -60,7 +71,7 @@ NodeManager::NFA NodeManager::makeSym(const char sym) {
     auto startNode = makeNFANode();
     auto endNode = makeNFANode(true);
     startNode->addTransition(sym, endNode);
-    return {startNode, endNode};
+    return {startNode, endNode, NFA::Type::symbol};
 }
 
 NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
@@ -70,7 +81,7 @@ NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
     assert(b.endNode->transitions.empty());
     a.endNode->m_isFinal = false;
     a.endNode->addTransition(EPS, b.startNode);
-    return {a.startNode, b.endNode};
+    return {a.startNode, b.endNode, NFA::Type::concatenation};
 }
 
 NodeManager::NFA NodeManager::makeAlternation(std::vector<NFA>& nodes) {
@@ -83,7 +94,7 @@ NodeManager::NFA NodeManager::makeAlternation(std::vector<NFA>& nodes) {
         node.endNode->addTransition(EPS, endNode);
     }
 
-    return {startNode, endNode};
+    return {startNode, endNode, NFA::Type::alternation};
 }
 
 NodeManager::NFA NodeManager::makeKleeneClousure(NFA& nfa) {
@@ -97,7 +108,7 @@ NodeManager::NFA NodeManager::makeKleeneClousure(NFA& nfa) {
     nfa.endNode->addTransition(EPS, nfa.startNode);
     nfa.endNode->addTransition(EPS, endNode);
 
-    return {startNode, endNode};
+    return {startNode, endNode, NFA::Type::kleene_star};
 }
 
 // DFA

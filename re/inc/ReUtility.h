@@ -52,12 +52,28 @@ public:
 
 class NFANumLimitExceededExpection : public ReException {
 public:
-    explicit NFANumLimitExceededExpection(const std::string& message) : ReException(message) {}
+    explicit NFANumLimitExceededExpection() :
+        ReException("The limit of number of NFA nodes is exceeded")
+    {}
 };
 
 class EmptyReExpection : public ReException {
 public:
     explicit EmptyReExpection(const std::string& message) : ReException(message) {}
+};
+
+class MultipleRepeatException : public ReException {
+public:
+    explicit MultipleRepeatException(const size_t pos) :
+        ReException("Multiple repeat at position " + std::to_string(pos))
+    {}
+};
+
+class NothingToRepeatException : public ReException {
+public:
+    explicit NothingToRepeatException(const size_t pos) :
+        ReException("Nothing to repeat at position " + std::to_string(pos))
+    {}
 };
 
 } // namespace Re
