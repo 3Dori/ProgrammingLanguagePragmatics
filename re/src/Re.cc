@@ -6,17 +6,12 @@
 #include <functional>
 #include <vector>
 
-using std::placeholders::_1;
-using std::placeholders::_2;
+// using std::placeholders::_1;
+// using std::placeholders::_2;  TODO remove
 
 namespace Re {
 
-DFANode* NodeManager::DFAFromNFA(NFANode* nfa) {
-    DFANode* dfa = makeDFANode(nfa);
-    makeDFATransitions(dfa);
-    return dfa;
-}
-
+// NFA
 NFANode* NodeManager::NFAFromRe(std::string_view re) {
     if (re.size() == 0) {
         throw EmptyReExpection("The regular expression is empty");
@@ -57,6 +52,7 @@ NFANode* NodeManager::makeNFANode(const bool isFinal) {
         throw NFANumLimitExceededExpection("The limit of number of NFA nodes is exceeded");
     }
     m_NFAs.emplace_back(m_NFAs.size(), isFinal);
+    assert(m_NFAs.back().m_id == m_NFAs.size() - 1 and "Wrong NFANode id");
     return &(m_NFAs.back());
 }
 
@@ -104,29 +100,36 @@ NodeManager::NFA NodeManager::makeKleeneClousure(NFA& nfa) {
     return {startNode, endNode};
 }
 
-DFANode* NodeManager::makeDFANode(const std::vector<NFANode*>& nfaNodes) {
+// DFA
+DFANode* NodeManager::DFAFromNFA(NFANode* nfa) {
+    DFANode* dfa = makeDFANode(nfa);
+    makeDFATransitions(dfa);
+    return dfa;
+}
+
+DFANode* NodeManager::makeDFANode(const std::vector<NFANode const*>& nfaNodes) {
     DFANode dfaNode;
-    for (auto* nfaNode : nfaNodes) {
+    for (auto const* nfaNode : nfaNodes) {
         dfaNode.bypassEPS(nfaNode);
     }
 
     // create a DFA node if it doesn't exist
     const auto NFANodesInvolved = dfaNode.m_NFANodes;
     if (not m_DFAs.contains(NFANodesInvolved)) {
-        m_DFAs[NFANodesInvolved] = dfaNode;
+        m_DFAs[NFANodesInvolved] = std::move(dfaNode);
     }
-    else {
-        assert(m_DFAs[NFANodesInvolved] == dfaNode);
-    }
+    // else {
+    //     assert(m_DFAs[NFANodesInvolved] == dfaNode);
+    // }
     return getDFANode(NFANodesInvolved);
 }
 
 DFANode* NodeManager::getDFANode(const NFASet& NFAs) {
-    return &(m_DFAs[NFAs]);
+    return &(m_DFAs.at(NFAs));
 }
 
 void NodeManager::makeDFATransitions(DFANode* dfaNode) {
-    for (const auto* nfaNode : dfaNode->m_NFANodeSet) {
+    for (auto const* nfaNode : dfaNode->m_NFANodeSet) {
         for (const auto& [sym, tos] : nfaNode->transitions) {
             if (sym != EPS and not dfaNode->hasTransition(sym)) {
                 DFANode* nextDfaNode = makeDFANode(tos);
@@ -139,10 +142,16 @@ void NodeManager::makeDFATransitions(DFANode* dfaNode) {
 
 ReParser::ReParser(std::string_view re) {
     NFANode* nfa = m_nodeManager.NFAFromRe(re);
+    m_dfa = m_nodeManager.DFAFromNFA(nfa);
 }
 
-bool ReParser::match(std::string_view str) {
-    return false;
+bool ReParser::matchExact(std::string_view str) const {
+    assert(m_dfa != nullptr);
+    return m_dfa->accept(str);
+}
+
+int32_t ReParser::find(std::string_view str) const {
+    return -1;
 }
 
 // int32_t findRightParen(const char* re, uint32_t start) {

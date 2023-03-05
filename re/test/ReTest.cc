@@ -3,18 +3,18 @@
 #include <gtest/gtest.h>
 
 
-TEST(ReTest, CanParseAndMatchBasicRe_1) {
+TEST(ReTest, CanParseAndMatchExactBasicRe_1) {
     Re::ReParser parser("abcd");
-    EXPECT_TRUE(parser.match("abcd"));
-    EXPECT_TRUE(parser.match("aaaabcd"));
-    EXPECT_TRUE(parser.match("abcababcd"));
-    EXPECT_FALSE(parser.match("abbcd"));
+    EXPECT_TRUE(parser.matchExact("abcd"));
+    EXPECT_FALSE(parser.matchExact("aaaabcd"));
+    EXPECT_FALSE(parser.matchExact("abcababcd"));
+    EXPECT_FALSE(parser.matchExact("abbcd"));
 }
 
-TEST(ReTest, CanParseAndMatchBasicRe_2) {
+TEST(ReTest, CanParseAndMatchExactBasicRe_2) {
     Re::ReParser parser("a");
-    EXPECT_TRUE(parser.match("a"));
-    EXPECT_TRUE(parser.match("AAAaa"));
-    EXPECT_TRUE(parser.match("bbbbbbbbbbbbbba"));
-    EXPECT_FALSE(parser.match("bbbbbbbbbbbbbb"));
+    EXPECT_TRUE(parser.matchExact("a"));
+    EXPECT_FALSE(parser.matchExact("AAAaa"));
+    EXPECT_FALSE(parser.matchExact("bbbbbbbbbbbbbba"));
+    EXPECT_FALSE(parser.matchExact("bbbbbbbbbbbbbb"));
 }

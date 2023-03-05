@@ -4,33 +4,54 @@
 
 #include <cassert>
 #include <vector>
-#include <unordered_set>
-#include <unordered_map>
-#include <string>
+#include <string_view>
+#include <set>
+#include <map>
+
 
 namespace Re {
 
 struct NFANode {
     NFANode(const size_t id, const bool isFinal) : m_id(id), m_isFinal(isFinal) {}
 
-    size_t m_id;
+    NFANode(const NFANode&) = delete;
+    NFANode& operator=(const NFANode&) = delete;
+
+    const size_t m_id;
     bool m_isFinal;
-    std::unordered_map<char, std::vector<NFANode*>> transitions;
+    std::map<char, std::vector<NFANode const*>> transitions;
 
     void addTransition(const char sym, NFANode* to) {
         transitions[sym].push_back(to);
+    }
+
+    bool hasTransition(const char sym) const {
+        return transitions.contains(sym);
     }
 };
 
 struct DFANode {
     bool m_isFinal = false;
-    std::unordered_map<char, DFANode*> m_transitions;
+    std::map<char, DFANode*> m_transitions;
     NFASet m_NFANodes;   // id of a DFA node
-    std::unordered_set<NFANode*> m_NFANodeSet;  // easy accessor to NFA nodes
+    std::set<NFANode const*> m_NFANodeSet;  // easy accessor to NFA nodes
 
     bool operator==(const DFANode& other) {
         return (m_isFinal == other.m_isFinal and
                 m_NFANodes == other.m_NFANodes);
+    }  // TODO remove and corresponding assert
+
+    bool accept(std::string_view str) {
+        DFANode* node = this;
+        for (const auto c : str) {
+            if (not node->hasTransition(c)) {
+                return false;
+            }
+            else {
+                node = node->m_transitions[c];
+            }
+        }
+        return node->m_isFinal;
     }
 
     void addTransition(const char sym, DFANode* to) {
@@ -46,15 +67,17 @@ struct DFANode {
         return m_transitions.contains(sym);
     }
 
-    void bypassEPS(NFANode* nfaNode) {
+    void bypassEPS(NFANode const* nfaNode) {
         if (nfaNode->m_isFinal) {
             m_isFinal = true;
         }
-        m_NFANodes[nfaNode->m_id] = true;
+        m_NFANodes.set(nfaNode->m_id, true);
         m_NFANodeSet.insert(nfaNode);
 
-        const auto& tos = nfaNode->transitions[EPS];
-        for (auto* to : tos) {  // in a DFS manner
+        if (not nfaNode->hasTransition(EPS)) {
+            return;
+        }
+        for (auto const* to : nfaNode->transitions.at(EPS)) {  // in a DFS manner
             if (not m_NFANodes[to->m_id]) {
                 bypassEPS(to);
             }
