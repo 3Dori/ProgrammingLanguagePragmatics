@@ -46,8 +46,17 @@ private:
     void makeDFATransitions(DFANode* dfaNode);
 
 private:
-    std::list<NFANode> m_NFAs;          // never resized compared to vector
-    std::map<NFASet, DFANode> m_DFAs;   // never resized compared to unordered_map
+    /**
+     * Use STL containers to automatically manage resourses
+     * and remove the need to use smart pointers, which could
+     * produce circular references.
+     * 
+     * Be wary of container resizing, at which time the Nodes
+     * are copied and the pointers to the nodes (in transitions)
+     * are invalidated, resulting in undefined behaviors.
+     */
+    std::list<NFANode> m_NFAs;          // unlike vector, lists are never resized
+    std::map<NFASet, DFANode> m_DFAs;   // unlike unordered_map, maps are never resized
 };
 
 
