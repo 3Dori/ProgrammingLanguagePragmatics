@@ -1,8 +1,13 @@
 #include "Re.h"
 
 #include <iostream>
+#include <numeric>
+#include <string_view>
+#include <functional>
 #include <vector>
-#include <memory>
+
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 namespace Re {
 
@@ -12,8 +17,39 @@ DFANode* NodeManager::DFAFromNFA(NFANode* nfa) {
     return dfa;
 }
 
-NFANode* NFAFromRe(const char* re) {
-    return nullptr;
+NFANode* NodeManager::NFAFromRe(std::string_view re) {
+    if (re.size() == 0) {
+        throw EmptyReExpection("The regular expression is empty");
+    }
+    std::vector<NFA> nfas;
+    for (const auto c : re) {
+        switch (c)
+        {
+        case EPS:
+        case LEFT_PAREN:
+        case RIGHT_PAREN:
+        case BAR:
+        case KLEENE_STAR:
+            assert(false and "Unimplemented");
+            break;
+        default:
+            nfas.push_back(makeSym(c));
+            break;
+        }
+    }
+    assert(nfas.size() >= 1 and "There must be at least one nfa");
+    // TODO investigate it
+    // NFA emptyNfa;
+    // NFA nfa = std::accumulate(nfas.begin(), nfas.end(), emptyNfa,
+                            //   std::bind(&NodeManager::makeConcatenation, this, _1, _2));
+                            //   [this](NFA& a, NFA& b) {
+                            //       return makeConcatenation(a, b);
+                            //   });
+    NFA resultNfa;
+    for (auto& nfa : nfas) {
+        resultNfa = makeConcatenation(resultNfa, nfa);
+    }
+    return resultNfa.startNode;
 }
 
 NFANode* NodeManager::makeNFANode(const bool isFinal) {
@@ -32,6 +68,9 @@ NodeManager::NFA NodeManager::makeSym(const char sym) {
 }
 
 NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
+    if (a.startNode == nullptr) {
+        return b;
+    }
     assert(b.endNode->transitions.empty());
     a.endNode->m_isFinal = false;
     a.endNode->addTransition(EPS, b.startNode);
@@ -97,27 +136,14 @@ void NodeManager::makeDFATransitions(DFANode* dfaNode) {
         }
     }
 }
-// struct ReParser;
-// using RePreSP = std::unique_ptr<ReParser>;
 
-// struct ReParser {
-//     enum class Type {
-//         concatenation,
-//         alternation,
-//         kleene_closure
-//     } type;
-//     uint32_t start;
-//     uint32_t end;
-//     std::vector<RePreSP> pres;
+ReParser::ReParser(std::string_view re) {
+    NFANode* nfa = m_nodeManager.NFAFromRe(re);
+}
 
-//     ReParser(const Type type, const uint32_t start, const uint32_t end)
-//         : type(type), start(start), end(end)
-//     {}
-
-//     static RePreSP makeRePre(const Type type, const uint32_t start, const uint32_t end) {
-//         return std::make_unique<ReParser>(type, start, end);
-//     }
-// };
+bool ReParser::match(std::string_view str) {
+    return false;
+}
 
 // int32_t findRightParen(const char* re, uint32_t start) {
 //     auto numParenthesis = 0u;
@@ -213,11 +239,3 @@ void NodeManager::makeDFATransitions(DFANode* dfaNode) {
 // }
 
 } // namespace Re
-
-int main(void) {
-    // auto r1 = Re::NFANode::constructNFA("abcd");
-    // auto r2 = Re::NFANode::constructNFA("()");
-    // auto r3 = Re::NFANode::constructNFA("aa((aaaa)");
-    
-    return 0;
-}

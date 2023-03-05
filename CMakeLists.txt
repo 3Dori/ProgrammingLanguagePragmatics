@@ -14,16 +14,17 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-include_directories(
-    re/src
-)
+add_subdirectory(re/src)
+
+include_directories(${PROJECT_SOURCE_DIR}/re/inc/)
 add_executable(
-  Re_test
-  re/test/ReTest.cc
+    Re_test
+    re/test/ReTest.cc
 )
 target_link_libraries(
     Re_test
-  GTest::gtest_main
+    GTest::gtest_main
+    re
 )
 
 include(GoogleTest)

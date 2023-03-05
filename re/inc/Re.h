@@ -1,6 +1,7 @@
 #include "ReUtility.h"
 #include "FA.h"
 
+#include <string_view>
 #include <vector>
 #include <unordered_map>
 
@@ -12,12 +13,12 @@ namespace Re
  */
 struct NodeManager {
     struct NFA {
-        NFANode* startNode;
-        NFANode* endNode;
+        NFANode* startNode = nullptr;
+        NFANode* endNode = nullptr;
     };
 
     DFANode* DFAFromNFA(NFANode*);
-    NFANode* NFAFromRe(const char*);
+    NFANode* NFAFromRe(std::string_view);
 
 private:
     NFANode* makeNFANode(const bool isFinal = false);
@@ -41,7 +42,11 @@ private:
 };
 
 
-struct ReParser {
+class ReParser {
+public:
+    ReParser(std::string_view);
+    bool match(std::string_view);
+
 private:
     NodeManager m_nodeManager;
 };
