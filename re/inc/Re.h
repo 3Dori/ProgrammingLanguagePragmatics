@@ -13,14 +13,16 @@ namespace Re
 /**
  * Manages the life cycle of NFA and DFA nodes
  */
-struct NodeManager {
+class NodeManager {
+    friend class ReParser;
+
     struct NFA {
         NFANode* startNode = nullptr;
         NFANode* endNode = nullptr;
         enum class Type {
             symbol,
             concatenation,
-            kleene_star,
+            repeat,
             alternation,
             unimplemented
         } type;
@@ -31,19 +33,23 @@ private:
     NFANode* NFAFromRe(std::string_view);
 
     NFANode* makeNFANode(const bool isFinal = false);
-    NFA makeSymol(const char sym);
-    NFA makeConcatenation(NFA& a, NFA& b);
-    NFA makeAlternation(std::vector<NFA>& nodes);
-    NFA makeKleeneClousure(NFA& nfa);
+    NFA makeSymol(const char);
+    NFA makeConcatenation(NFA&, NFA&);
+    NFA makeAlternation(NFA&, NFA&);
 
-    DFANode* makeDFANode(const std::vector<NFANode const*>& nfaNodes);
+    NFA makeKleeneClousure(NFA&);
+    NFA makeQuestion(NFA&) {};
+    NFA makePlus(NFA&);
+    NFA makeRepeat(const char, const size_t);
+
+    DFANode* makeDFANode(const std::vector<NFANode const*>&);
 
     inline DFANode* makeDFANode(NFANode const* nfaNode) {
         return makeDFANode(std::vector<NFANode const*>{nfaNode});
     }
 
-    DFANode* getDFANode(const NFASet& NFAs);
-    void makeDFATransitions(DFANode* dfaNode);
+    DFANode* getDFANode(const NFASet&);
+    void makeDFATransitions(DFANode*);
 
 private:
     /**
@@ -57,6 +63,8 @@ private:
      */
     std::list<NFANode> m_NFAs;          // unlike vector, lists are never resized
     std::map<NFASet, DFANode> m_DFAs;   // unlike unordered_map, maps are never resized
+
+    std::vector<NFA> m_resultNfa;
 };
 
 

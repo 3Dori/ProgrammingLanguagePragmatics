@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <bitset>
+#include <string>
 
 
 namespace std {
@@ -36,6 +37,9 @@ constexpr char LEFT_PAREN = '(';
 constexpr char RIGHT_PAREN = ')';
 constexpr char BAR = '|';
 constexpr char KLEENE_STAR = '*';
+constexpr char PLUS = '+';
+constexpr char QUESTION = '?';
+constexpr char ESCAPE = '\\';
 
 constexpr size_t MAX_NFA_NODE_NUM = 1024;
 using NFASet = std::bitset<MAX_NFA_NODE_NUM>;

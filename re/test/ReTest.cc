@@ -27,8 +27,10 @@ TEST(ReTest, CanParseAndMatchExactEmptyRe) {
 
 TEST(ReTest, KleeneStarExceptions) {
     EXPECT_THROW(Re::ReParser parser("1**"), Re::MultipleRepeatException);
+    EXPECT_THROW(Re::ReParser parser("1+*"), Re::MultipleRepeatException);
     EXPECT_THROW(Re::ReParser parser("1*2**"), Re::MultipleRepeatException);
     EXPECT_THROW(Re::ReParser parser("1*2***"), Re::MultipleRepeatException);
+    EXPECT_THROW(Re::ReParser parser("1*2+**"), Re::MultipleRepeatException);
     EXPECT_THROW(Re::ReParser parser("*123"), Re::NothingToRepeatException);
     EXPECT_THROW(Re::ReParser parser("*"), Re::NothingToRepeatException);
     EXPECT_THROW(Re::ReParser parser("**"), Re::NothingToRepeatException);
@@ -59,4 +61,41 @@ TEST(ReTest, CanParseAndMatchExactKleeneStarForBasicSym_2) {
     EXPECT_FALSE(parser.matchExact("abc"));
     EXPECT_FALSE(parser.matchExact("aB"));
     EXPECT_FALSE(parser.matchExact("11babbbb"));
+}
+
+TEST(ReTest, PlusExceptions) {
+    EXPECT_THROW(Re::ReParser parser("1++"), Re::MultipleRepeatException);
+    EXPECT_THROW(Re::ReParser parser("1+2++"), Re::MultipleRepeatException);
+    EXPECT_THROW(Re::ReParser parser("1*2*++"), Re::MultipleRepeatException);
+    EXPECT_THROW(Re::ReParser parser("+123"), Re::NothingToRepeatException);
+    EXPECT_THROW(Re::ReParser parser("+"), Re::NothingToRepeatException);
+    EXPECT_THROW(Re::ReParser parser("++"), Re::NothingToRepeatException);
+    // TODO more cases
+}
+
+TEST(ReTest, CanParseAndMatchExactPlus_1) {
+    Re::ReParser parser("a+");
+    EXPECT_TRUE(parser.matchExact("a"));
+    EXPECT_TRUE(parser.matchExact("aa"));
+    EXPECT_TRUE(parser.matchExact("aaaa"));
+
+    EXPECT_FALSE(parser.matchExact(""));
+    EXPECT_FALSE(parser.matchExact("aab"));
+    EXPECT_FALSE(parser.matchExact("baa"));
+}
+
+TEST(ReTest, CanParseAndMatchExactPlus_2) {
+    Re::ReParser parser("a+b+c");
+    EXPECT_TRUE(parser.matchExact("abc"));
+    EXPECT_TRUE(parser.matchExact("aabc"));
+    EXPECT_TRUE(parser.matchExact("abbc"));
+    EXPECT_TRUE(parser.matchExact("aaaaaabbbbbbbc"));
+
+    EXPECT_FALSE(parser.matchExact("c"));
+    EXPECT_FALSE(parser.matchExact("ac"));
+    EXPECT_FALSE(parser.matchExact("aaaaac"));
+    EXPECT_FALSE(parser.matchExact("bc"));
+    EXPECT_FALSE(parser.matchExact("bbbc"));
+    EXPECT_FALSE(parser.matchExact("a123c"));
+    EXPECT_FALSE(parser.matchExact("123bc"));
 }

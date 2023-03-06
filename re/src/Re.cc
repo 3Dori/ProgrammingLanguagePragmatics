@@ -13,30 +13,23 @@ namespace Re {
 
 // NFA
 NFANode* NodeManager::NFAFromRe(std::string_view re) {
-    std::vector<NFA> nfas;
+    assert(m_resultNfa.empty() and "m_resultNfa must be empty");
     for (auto pos = 0u; pos < re.size(); ++pos) {
         const auto c = re[pos];
         switch (c)
         {
         case EPS:
+        case BAR:
         case LEFT_PAREN:
         case RIGHT_PAREN:
-        case BAR:
             assert(false and "Unimplemented");
-        case KLEENE_STAR: {
-            if (nfas.size() == 0) {
-                throw NothingToRepeatException(pos);
-            }
-            NFA lastNfa = nfas.back();
-            if (lastNfa.type == NFA::Type::kleene_star) {
-                throw MultipleRepeatException(pos);
-            }
-            nfas.pop_back();
-            nfas.push_back(makeKleeneClousure(lastNfa));
+        case KLEENE_STAR:
+        case PLUS:
+        case QUESTION:
+            m_resultNfa.push_back(makeRepeat(c, pos));
             break;
-        }
         default:
-            nfas.push_back(makeSymol(c));
+            m_resultNfa.push_back(makeSymol(c));
             break;
         }
     }
@@ -48,7 +41,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
                             //       return makeConcatenation(a, b);
                             //   });
     NFA resultNfa;
-    for (auto& nfa : nfas) {
+    for (auto& nfa : m_resultNfa) {
         resultNfa = makeConcatenation(resultNfa, nfa);
     }
     if (resultNfa.startNode == nullptr) {
@@ -77,37 +70,59 @@ NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
     if (a.startNode == nullptr) {
         return b;
     }
-    assert(b.endNode->transitions.empty());
     a.endNode->m_isFinal = false;
     a.endNode->addTransition(EPS, b.startNode);
     return {a.startNode, b.endNode, NFA::Type::concatenation};
 }
 
-NodeManager::NFA NodeManager::makeAlternation(std::vector<NFA>& nodes) {
+NodeManager::NFA NodeManager::makeAlternation(NFA& a, NFA& b) {
     auto startNode = makeNFANode();
     auto endNode = makeNFANode(true);
 
-    for (auto& node : nodes) {
-        node.endNode->m_isFinal = false;
-        startNode->addTransition(EPS, node.startNode);
-        node.endNode->addTransition(EPS, endNode);
-    }
+    a.endNode->m_isFinal = false;
+    b.endNode->m_isFinal = false;
+
+    startNode->addTransition(EPS, a.startNode);
+    startNode->addTransition(EPS, b.endNode);
+
+    a.endNode->addTransition(EPS, endNode);
+    b.endNode->addTransition(EPS, endNode);
 
     return {startNode, endNode, NFA::Type::alternation};
 }
 
 NodeManager::NFA NodeManager::makeKleeneClousure(NFA& nfa) {
-    auto startNode = makeNFANode();
-    auto endNode = makeNFANode(true);
-
-    nfa.endNode->m_isFinal = false;
-
-    startNode->addTransition(EPS, nfa.startNode);
-    startNode->addTransition(EPS, endNode);
+    nfa.startNode->addTransition(EPS, nfa.endNode);
     nfa.endNode->addTransition(EPS, nfa.startNode);
-    nfa.endNode->addTransition(EPS, endNode);
 
-    return {startNode, endNode, NFA::Type::kleene_star};
+    return {nfa.startNode, nfa.endNode, NFA::Type::repeat};
+}
+
+NodeManager::NFA NodeManager::makePlus(NFA& nfa) {
+    nfa.endNode->addTransition(EPS, nfa.startNode);
+
+    return {nfa.startNode, nfa.endNode, NFA::Type::repeat};
+}
+
+NodeManager::NFA NodeManager::makeRepeat(const char sym, const size_t pos) {
+    if (m_resultNfa.size() == 0) {
+        throw NothingToRepeatException(pos);
+    }
+    NFA lastNfa = m_resultNfa.back();
+    if (lastNfa.type == NFA::Type::repeat) {
+        throw MultipleRepeatException(pos);
+    }
+    m_resultNfa.pop_back();
+    switch (sym) {
+        case KLEENE_STAR:
+            return makeKleeneClousure(lastNfa);
+        case PLUS:
+            return makePlus(lastNfa);
+        case QUESTION:
+            return makeQuestion(lastNfa);
+        default:
+            assert(false and "Unexpected repeat symbol");
+    }
 }
 
 // DFA

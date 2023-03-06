@@ -11,15 +11,17 @@
 
 namespace Re {
 
-struct NFANode {
+class NFANode {
+    friend class ReParser;
+    friend class NodeManager;
+    friend class DFANode;
+
+public:
     NFANode(const size_t id, const bool isFinal) : m_id(id), m_isFinal(isFinal) {}
 
+private:
     NFANode(const NFANode&) = delete;
     NFANode& operator=(const NFANode&) = delete;
-
-    const size_t m_id;
-    bool m_isFinal;
-    std::map<char, std::vector<NFANode const*>> transitions;
 
     void addTransition(const char sym, NFANode* to) {
         transitions[sym].push_back(to);
@@ -28,18 +30,25 @@ struct NFANode {
     bool hasTransition(const char sym) const {
         return transitions.contains(sym);
     }
+
+    const size_t m_id;
+    bool m_isFinal;
+    std::map<char, std::vector<NFANode const*>> transitions;
 };
 
-struct DFANode {
-    bool m_isFinal = false;
-    std::map<char, DFANode*> m_transitions;
-    NFASet m_NFANodes;   // id of a DFA node
-    std::set<NFANode const*> m_NFANodeSet;  // easy accessor to NFA nodes
+class DFANode {
+    friend class ReParser;
+    friend class NodeManager;
+    friend class NFANode;
 
-    bool operator==(const DFANode& other) {
-        return (m_isFinal == other.m_isFinal and
-                m_NFANodes == other.m_NFANodes);
-    }  // TODO remove and corresponding assert
+public:
+    DFANode() = default;
+    DFANode& operator=(DFANode&&) = default;
+
+private:
+    DFANode(const DFANode&) = delete;
+    DFANode& operator=(const DFANode&) = delete;
+    DFANode(DFANode&&) = delete;
 
     bool accept(std::string_view str) const {
         DFANode const* node = this;
@@ -83,6 +92,11 @@ struct DFANode {
             }
         }
     }
+
+    bool m_isFinal = false;
+    std::map<char, DFANode*> m_transitions;
+    NFASet m_NFANodes;   // id of a DFA node
+    std::set<NFANode const*> m_NFANodeSet;  // easy accessor to NFA nodes
 };
 
 } // namespace Re
