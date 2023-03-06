@@ -28,7 +28,7 @@ private:
     }
 
     bool hasTransition(const char sym) const {
-        return m_transitions.contains(sym);
+        return m_transitions.find(sym) != m_transitions.end();
     }
 
     const size_t m_id;
@@ -73,7 +73,7 @@ private:
     }
 
     bool hasTransition(const char sym) const {
-        return m_transitions.contains(sym);
+        return m_transitions.find(sym) != m_transitions.end();
     }
 
     void bypassEPS(NFANode const* nfaNode) {

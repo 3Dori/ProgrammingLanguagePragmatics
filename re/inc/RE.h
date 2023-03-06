@@ -50,8 +50,6 @@ private:
 
     DFANode* getDFANode(const NFASet&);
     void makeDFATransitions(DFANode*);
-
-    void advanceSymForEscape();
 private:
     /**
      * Use STL containers to automatically manage resourses

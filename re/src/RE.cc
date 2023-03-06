@@ -30,7 +30,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             break;
         case ESCAPE:
         {
-            pos++;
+            pos++;  // advance one symbol manually
             if (pos == re.size()) {
                 throw EscapeException("Escape reaches the end of the input");
             }
@@ -165,7 +165,7 @@ DFANode* NodeManager::makeDFANode(const std::set<NFANode const*>& nfaNodes) {
 
     // create a DFA node if it doesn't exist
     const auto NFANodesInvolved = dfaNode.m_NFANodes;
-    if (not m_DFAs.contains(NFANodesInvolved)) {
+    if (m_DFAs.find(NFANodesInvolved) == m_DFAs.end()) {
         m_DFAs[NFANodesInvolved] = std::move(dfaNode);
     }
     return getDFANode(NFANodesInvolved);

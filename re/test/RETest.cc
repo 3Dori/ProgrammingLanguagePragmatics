@@ -137,7 +137,7 @@ TEST(RETest, CanParseAndMatchExactQuestion_2) {
 TEST(RETest, EscapeExceptions) {
     EXPECT_THROW(RE::REParser(R"(\)"), RE::EscapeException);
     EXPECT_THROW(RE::REParser(R"(\a)"), RE::EscapeException);
-    EXPECT_THROW(RE::REParser(R"(a\ab)"), RE::EscapeException);
+    EXPECT_THROW(RE::REParser(R"(a\1b)"), RE::EscapeException);
     EXPECT_THROW(RE::REParser(R"(\\\)"), RE::EscapeException);
     EXPECT_THROW(RE::REParser(R"(a\\\a)"), RE::EscapeException);
 }
@@ -158,7 +158,7 @@ TEST(RETest, CanParseAndMatchEscapes) {
     EXPECT_TRUE(RE::REParser(R"(\**)").matchExact(""));
     EXPECT_TRUE(RE::REParser(R"(\**)").matchExact("****"));
     EXPECT_TRUE(RE::REParser(R"(ab\**c)").matchExact("ab*c"));
-    EXPECT_FALSE(RE::REParser(R"(ab\**c)").matchExact(R"(ab\*c)"));
+    EXPECT_FALSE(RE::REParser(R"(ab\**cc)").matchExact(R"(ab\*cc)"));
 
     EXPECT_TRUE(RE::REParser(R"(\+\|\\)").matchExact(R"(+|\)"));
     EXPECT_TRUE(RE::REParser(R"(\+-\*/%)").matchExact("+-*/%"));
