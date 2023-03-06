@@ -7,14 +7,14 @@
 #include <map>
 #include <cstdint>
 
-namespace Re
+namespace RE
 {
 
 /**
  * Manages the life cycle of NFA and DFA nodes
  */
 class NodeManager {
-    friend class ReParser;
+    friend class REParser;
 
     struct NFA {
         NFANode* startNode = nullptr;
@@ -33,7 +33,7 @@ private:
     NFANode* NFAFromRe(std::string_view);
 
     NFANode* makeNFANode(const bool isFinal = false);
-    NFA makeSymol(const char);
+    NFA makeSymbol(const char);
     NFA makeConcatenation(NFA&, NFA&);
     NFA makeAlternation(NFA&, NFA&);
 
@@ -51,6 +51,7 @@ private:
     DFANode* getDFANode(const NFASet&);
     void makeDFATransitions(DFANode*);
 
+    void advanceSymForEscape();
 private:
     /**
      * Use STL containers to automatically manage resourses
@@ -68,9 +69,9 @@ private:
 };
 
 
-class ReParser {
+class REParser {
 public:
-    ReParser(std::string_view);
+    REParser(std::string_view);
     bool matchExact(std::string_view) const;
     int32_t find(std::string_view) const;
 
@@ -79,4 +80,4 @@ private:
     DFANode* m_dfa = nullptr;
 };
 
-} // namespace Re
+} // namespace RE

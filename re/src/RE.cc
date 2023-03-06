@@ -9,16 +9,16 @@
 // using std::placeholders::_1;
 // using std::placeholders::_2;  TODO remove
 
-namespace Re {
+namespace RE {
 
 // NFA
 NFANode* NodeManager::NFAFromRe(std::string_view re) {
     assert(m_resultNfa.empty() and "m_resultNfa must be empty");
     for (auto pos = 0u; pos < re.size(); ++pos) {
-        const auto c = re[pos];
-        switch (c)
+        const auto sym = re[pos];
+        switch (sym)
         {
-        case EPS:
+        case EPS: assert(false and "Unexpected end of regex");
         case BAR:
         case LEFT_PAREN:
         case RIGHT_PAREN:
@@ -26,10 +26,32 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         case KLEENE_STAR:
         case PLUS:
         case QUESTION:
-            m_resultNfa.push_back(makeRepeat(c, pos));
+            m_resultNfa.push_back(makeRepeat(sym, pos));
             break;
+        case ESCAPE:
+        {
+            pos++;
+            if (pos == re.size()) {
+                throw EscapeException("Escape reaches the end of the input");
+            }
+            const auto nextSym = re[pos];
+            switch (nextSym) {
+                case BAR:
+                case LEFT_PAREN:
+                case RIGHT_PAREN:
+                case KLEENE_STAR:
+                case PLUS:
+                case QUESTION:
+                case ESCAPE:
+                    m_resultNfa.push_back(makeSymbol(nextSym));
+                    break;
+                default:
+                    throw EscapeException(nextSym, pos);
+            }
+            break;
+        }
         default:
-            m_resultNfa.push_back(makeSymol(c));
+            m_resultNfa.push_back(makeSymbol(sym));
             break;
         }
     }
@@ -59,7 +81,7 @@ NFANode* NodeManager::makeNFANode(const bool isFinal) {
     return &(m_NFAs.back());
 }
 
-NodeManager::NFA NodeManager::makeSymol(const char sym) {
+NodeManager::NFA NodeManager::makeSymbol(const char sym) {
     auto startNode = makeNFANode();
     auto endNode = makeNFANode(true);
     startNode->addTransition(sym, endNode);
@@ -165,17 +187,17 @@ void NodeManager::makeDFATransitions(DFANode* dfaNode) {
     }
 }
 
-ReParser::ReParser(std::string_view re) {
+REParser::REParser(std::string_view re) {
     NFANode* nfa = m_nodeManager.NFAFromRe(re);
     m_dfa = m_nodeManager.DFAFromNFA(nfa);
 }
 
-bool ReParser::matchExact(std::string_view str) const {
+bool REParser::matchExact(std::string_view str) const {
     assert(m_dfa != nullptr);
     return m_dfa->accept(str);
 }
 
-int32_t ReParser::find(std::string_view str) const {
+int32_t REParser::find(std::string_view str) const {
     return -1;
 }
 
@@ -213,9 +235,9 @@ int32_t ReParser::find(std::string_view str) const {
 //         {
 //         case LEFT_PAREN: {
 //             auto end = findRightParen(re, start);
-//             auto rePre = ReParser::makeRePre(ReParser::Type::concatenation, start+1, end-1);
+//             auto rePre = REParser::makeRePre(REParser::Type::concatenation, start+1, end-1);
 //             if (re[end+1] == KLEENE_STAR) {
-//                 rePre->type = ReParser::Type::kleene_closure;
+//                 rePre->type = REParser::Type::kleene_closure;
 //             }
 //             start = end;
 //         }
@@ -272,4 +294,4 @@ int32_t ReParser::find(std::string_view str) const {
 //     return constructNFA(re.c_str(), 0, re.size());
 // }
 
-} // namespace Re
+} // namespace RE

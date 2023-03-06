@@ -9,10 +9,10 @@
 #include <map>
 
 
-namespace Re {
+namespace RE {
 
 class NFANode {
-    friend class ReParser;
+    friend class REParser;
     friend class NodeManager;
     friend class DFANode;
 
@@ -37,7 +37,7 @@ private:
 };
 
 class DFANode {
-    friend class ReParser;
+    friend class REParser;
     friend class NodeManager;
     friend class NFANode;
 
@@ -99,4 +99,4 @@ private:
     std::set<NFANode const*> m_NFANodeSet;  // easy accessor to NFA nodes
 };
 
-} // namespace Re
+} // namespace RE

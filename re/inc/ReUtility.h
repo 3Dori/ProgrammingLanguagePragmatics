@@ -30,7 +30,7 @@ bool operator<(const std::bitset<N>& lhs, const std::bitset<N>& rhs) noexcept {
 } // namespace std
 
 
-namespace Re {
+namespace RE {
 
 constexpr char EPS = 0;
 constexpr char LEFT_PAREN = '(';
@@ -44,35 +44,46 @@ constexpr char ESCAPE = '\\';
 constexpr size_t MAX_NFA_NODE_NUM = 1024;
 using NFASet = std::bitset<MAX_NFA_NODE_NUM>;
 
-class ReException : public std::runtime_error {
+class REException : public std::runtime_error {
 public:
-    explicit ReException(const std::string& message) : std::runtime_error(message) {}
+    explicit REException(const std::string& message) : std::runtime_error(message) {}
 };
 
-class ParenthesisMatchingException : public ReException {
+class ParenthesisMatchingException : public REException {
 public:
-    explicit ParenthesisMatchingException(const std::string& message) : ReException(message) {}
+    explicit ParenthesisMatchingException(const std::string& message) : REException(message) {}
 };
 
-class NFANumLimitExceededExpection : public ReException {
+class NFANumLimitExceededExpection : public REException {
 public:
     explicit NFANumLimitExceededExpection() :
-        ReException("The limit of number of NFA nodes is exceeded")
+        REException("The limit of number of NFA nodes is exceeded")
     {}
 };
 
-class MultipleRepeatException : public ReException {
+class MultipleRepeatException : public REException {
 public:
     explicit MultipleRepeatException(const size_t pos) :
-        ReException("Multiple repeat at position " + std::to_string(pos))
+        REException("Multiple repeat at position " + std::to_string(pos))
     {}
 };
 
-class NothingToRepeatException : public ReException {
+class NothingToRepeatException : public REException {
 public:
     explicit NothingToRepeatException(const size_t pos) :
-        ReException("Nothing to repeat at position " + std::to_string(pos))
+        REException("Nothing to repeat at position " + std::to_string(pos))
     {}
 };
 
-} // namespace Re
+class EscapeException : public REException {
+public:
+    explicit EscapeException(const char sym, const size_t pos) :
+        REException(std::string("Unexpected escape character [") + sym + "] at position " + std::to_string(pos))
+    {}
+
+    explicit EscapeException(const std::string& message) :
+        REException(message)
+    {}
+};
+
+} // namespace RE
