@@ -23,6 +23,7 @@ private:
     NFANode(const NFANode&) = delete;
     NFANode& operator=(const NFANode&) = delete;
 
+    // TODO check repeat state
     void addTransition(const char sym, NFANode* to) {
         transitions[sym].push_back(to);
     }

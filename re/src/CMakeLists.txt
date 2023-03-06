@@ -1,5 +1,5 @@
-include_directories(${PROJECT_SOURCE_DIR}/re/inc/)
+include_directories(${PROJECT_SOURCE_DIR}/RE/inc/)
 add_library(
-    re
-    Re.cc
+    RE
+    RE.cc
 )

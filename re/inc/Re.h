@@ -38,8 +38,8 @@ private:
     NFA makeAlternation(NFA&, NFA&);
 
     NFA makeKleeneClousure(NFA&);
-    NFA makeQuestion(NFA&) {};
     NFA makePlus(NFA&);
+    NFA makeQuestion(NFA&);
     NFA makeRepeat(const char, const size_t);
 
     DFANode* makeDFANode(const std::vector<NFANode const*>&);

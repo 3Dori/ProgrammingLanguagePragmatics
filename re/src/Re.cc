@@ -1,4 +1,4 @@
-#include "Re.h"
+#include "RE.h"
 
 #include <iostream>
 #include <numeric>
@@ -94,13 +94,16 @@ NodeManager::NFA NodeManager::makeAlternation(NFA& a, NFA& b) {
 NodeManager::NFA NodeManager::makeKleeneClousure(NFA& nfa) {
     nfa.startNode->addTransition(EPS, nfa.endNode);
     nfa.endNode->addTransition(EPS, nfa.startNode);
-
     return {nfa.startNode, nfa.endNode, NFA::Type::repeat};
 }
 
 NodeManager::NFA NodeManager::makePlus(NFA& nfa) {
     nfa.endNode->addTransition(EPS, nfa.startNode);
+    return {nfa.startNode, nfa.endNode, NFA::Type::repeat};
+}
 
+NodeManager::NFA NodeManager::makeQuestion(NFA& nfa) {
+    nfa.startNode->addTransition(EPS, nfa.endNode);
     return {nfa.startNode, nfa.endNode, NFA::Type::repeat};
 }
 
