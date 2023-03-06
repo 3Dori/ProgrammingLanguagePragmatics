@@ -133,3 +133,17 @@ TEST(ReTest, CanParseAndMatchExactQuestion_2) {
     EXPECT_FALSE(parser.matchExact("1abbbb"));
     EXPECT_FALSE(parser.matchExact("1c"));
 }
+
+TEST(ReTest, CanParseAndMatchGeneralRE_1) {
+    Re::ReParser parser("a*bc+d?");
+    EXPECT_TRUE(parser.matchExact("aaabccd"));
+    EXPECT_TRUE(parser.matchExact("bcd"));
+    EXPECT_TRUE(parser.matchExact("abc"));
+    EXPECT_TRUE(parser.matchExact("bc"));
+
+    EXPECT_FALSE(parser.matchExact("aaabbccd"));
+    EXPECT_FALSE(parser.matchExact("aabccdd"));
+    EXPECT_FALSE(parser.matchExact("1"));
+    EXPECT_FALSE(parser.matchExact("aabd"));
+    EXPECT_FALSE(parser.matchExact("bcdd"));
+}

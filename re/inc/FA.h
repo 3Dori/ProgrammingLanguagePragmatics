@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ReUtility.h"
+#include "REUtility.h"
 
 #include <cassert>
 #include <vector>

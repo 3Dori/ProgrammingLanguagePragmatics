@@ -146,9 +146,6 @@ DFANode* NodeManager::makeDFANode(const std::set<NFANode const*>& nfaNodes) {
     if (not m_DFAs.contains(NFANodesInvolved)) {
         m_DFAs[NFANodesInvolved] = std::move(dfaNode);
     }
-    // else {
-    //     assert(m_DFAs[NFANodesInvolved] == dfaNode);
-    // }
     return getDFANode(NFANodesInvolved);
 }
 
