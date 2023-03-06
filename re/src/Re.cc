@@ -135,7 +135,7 @@ DFANode* NodeManager::DFAFromNFA(NFANode* nfa) {
     return dfa;
 }
 
-DFANode* NodeManager::makeDFANode(const std::vector<NFANode const*>& nfaNodes) {
+DFANode* NodeManager::makeDFANode(const std::set<NFANode const*>& nfaNodes) {
     DFANode dfaNode;
     for (auto const* nfaNode : nfaNodes) {
         dfaNode.bypassEPS(nfaNode);
@@ -158,7 +158,7 @@ DFANode* NodeManager::getDFANode(const NFASet& NFAs) {
 
 void NodeManager::makeDFATransitions(DFANode* dfaNode) {
     for (auto const* nfaNode : dfaNode->m_NFANodeSet) {
-        for (const auto& [sym, tos] : nfaNode->transitions) {
+        for (const auto& [sym, tos] : nfaNode->m_transitions) {
             if (sym != EPS and not dfaNode->hasTransition(sym)) {
                 DFANode* nextDfaNode = makeDFANode(tos);
                 dfaNode->addTransition(sym, nextDfaNode);

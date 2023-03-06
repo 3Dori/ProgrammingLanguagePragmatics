@@ -42,10 +42,10 @@ private:
     NFA makeQuestion(NFA&);
     NFA makeRepeat(const char, const size_t);
 
-    DFANode* makeDFANode(const std::vector<NFANode const*>&);
+    DFANode* makeDFANode(const std::set<NFANode const*>&);
 
     inline DFANode* makeDFANode(NFANode const* nfaNode) {
-        return makeDFANode(std::vector<NFANode const*>{nfaNode});
+        return makeDFANode(std::set<NFANode const*>{nfaNode});
     }
 
     DFANode* getDFANode(const NFASet&);

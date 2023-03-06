@@ -23,18 +23,17 @@ private:
     NFANode(const NFANode&) = delete;
     NFANode& operator=(const NFANode&) = delete;
 
-    // TODO check repeat state
     void addTransition(const char sym, NFANode* to) {
-        transitions[sym].push_back(to);
+        m_transitions[sym].insert(to);
     }
 
     bool hasTransition(const char sym) const {
-        return transitions.contains(sym);
+        return m_transitions.contains(sym);
     }
 
     const size_t m_id;
     bool m_isFinal;
-    std::map<char, std::vector<NFANode const*>> transitions;
+    std::map<char, std::set<NFANode const*>> m_transitions;
 };
 
 class DFANode {
@@ -87,7 +86,7 @@ private:
         if (not nfaNode->hasTransition(EPS)) {
             return;
         }
-        for (auto const* to : nfaNode->transitions.at(EPS)) {  // in a DFS manner
+        for (auto const* to : nfaNode->m_transitions.at(EPS)) {  // in a DFS manner
             if (not m_NFANodes[to->m_id]) {
                 bypassEPS(to);
             }
