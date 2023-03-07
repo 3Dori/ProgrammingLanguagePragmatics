@@ -249,3 +249,19 @@ TEST(RETest, CanParseAndMatchGeneralRE_EmailAddress) {
     EXPECT_FALSE(parser.matchExact("alan.turing@hotmail.com"));
     EXPECT_FALSE(parser.matchExact("alan.turing@yahoo.jp"));
 }
+
+TEST(RETest, CanParseAndMatchGeneralRE_Integer) {
+    RE::REParser parser("0|-?(1|2|3|4|5|6|7|8|9)(1|2|3|4|5|6|7|8|9|0)*");
+    EXPECT_TRUE(parser.matchExact("-11034"));
+    EXPECT_TRUE(parser.matchExact("1234567890"));
+    EXPECT_TRUE(parser.matchExact("0"));
+
+    EXPECT_FALSE(parser.matchExact("--1"));
+    EXPECT_FALSE(parser.matchExact("01"));
+    EXPECT_FALSE(parser.matchExact("1-"));
+    EXPECT_FALSE(parser.matchExact("0987654321"));
+    EXPECT_FALSE(parser.matchExact("-0"));
+    EXPECT_FALSE(parser.matchExact("1a"));
+    EXPECT_FALSE(parser.matchExact("-1b1000"));
+    EXPECT_FALSE(parser.matchExact("-"));
+}
