@@ -51,7 +51,7 @@ public:
         std::vector<Pos_t> m_groupStarts{{0, -1, Pos_t::Type::re_start}};
 
     public:
-        const Pos_t& getLastOpen() const {
+        const Pos_t& getLastGroupStart() const {
             return m_groupStarts.back();
         }
 
@@ -71,89 +71,31 @@ public:
             m_groupStarts.push_back({m_stack.size(), posInRe, Pos_t::Type::bar});
         }
 
-        /**
-         * @brief Pop the last NFA in the stack
-         *   Should be only invoked in NodeManager::makeRepeat
-         * @return NFA 
-         */
         NFA popOne() {
-            assert(not m_stack.empty() and "Stack cannot be empty for popping");
             const auto ret = m_stack.back();
             m_stack.pop_back();
             return ret;
         }
 
-        // TODO check: a pop must be followed by a push, except the last one
-        Stack_t popTillLastOpen() {
-            // Pop last open
-            const auto lastOpenPos = getLastOpen().posInStack;
-            if (getLastOpen().type != Pos_t::Type::re_start) {
+        Stack_t popTillLastGroupStart() {
+            // Pop last group start
+            const auto lastGroupStartPosInStack = getLastGroupStart().posInStack;
+            if (getLastGroupStart().type != Pos_t::Type::re_start) {
                 m_groupStarts.pop_back();
             }
-            // Pop nfas till last open
-            const auto ret = Stack_t(m_stack.begin() + lastOpenPos, m_stack.end());
-            m_stack.resize(lastOpenPos);
+            // Pop nfas till last group start
+            const auto ret = Stack_t(m_stack.begin() + lastGroupStartPosInStack, m_stack.end());
+            m_stack.resize(lastGroupStartPosInStack);
 
             return ret;
         }
-
-        Stack_t popAll() {
-            // if (not m_openParens.empty()) {
-            //     throw MissingParenthsisException(m_openParens.back().posInRe);
-            // }
-            const auto ret = m_stack;
-            m_stack.clear();
-            return ret;
-        }
-
-        // 
     };
 
 private:
     DFANode* DFAFromNFA(NFANode*);  // TODO simplify DFA
     NFANode* NFAFromRe(std::string_view);
 
-    NFA finishParsing(REParsingStack& stack) {
-        while (true) {
-            const auto lastOpenType = stack.getLastOpen().type;
-            const auto lastOpenPosInRe = stack.getLastOpen().posInRe;
-            auto nfas = stack.popTillLastOpen();
-            switch (lastOpenType) {
-                case REParsingStack::Pos_t::Type::open_parenthesis:
-                    throw MissingParenthsisException(lastOpenPosInRe);
-                    break;
-                case REParsingStack::Pos_t::Type::bar: {
-                    NFA nfa = concatenateNFAs(nfas);
-                    NFA lastNfa = stack.popOne();
-                    stack.push(makeAlternation(lastNfa, nfa));
-                    break;
-                }
-                case REParsingStack::Pos_t::Type::re_start:
-                    return concatenateNFAs(nfas);
-            }
-        }
-    }
-
-    // TODO refactor with finishParsing
-    void matchLastOpenParen(REParsingStack& stack, const size_t pos) {
-        while (true) {
-            const auto lastOpenType = stack.getLastOpen().type;
-            auto nfas = stack.popTillLastOpen();
-            switch (lastOpenType) {
-                case REParsingStack::Pos_t::Type::open_parenthesis:
-                    stack.push(concatenateNFAs(nfas));
-                    return;
-                case REParsingStack::Pos_t::Type::bar: {
-                    NFA nfa = concatenateNFAs(nfas);
-                    NFA lastNfa = stack.popOne();
-                    stack.push(makeAlternation(lastNfa, nfa));
-                    break;
-                }
-                case REParsingStack::Pos_t::Type::re_start:
-                    throw UnbalancedParenthesisException(pos);
-            }
-        }
-    }
+    NFA parseLastGroup(REParsingStack&, const size_t, const bool);
 
     NFA concatenateNFAs(std::vector<NFA>&);
 

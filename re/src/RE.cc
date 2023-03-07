@@ -1,5 +1,4 @@
 #include "RE.h"
-// #include "REParsingStack.h" TODO remove
 
 #include <iostream>
 #include <numeric>
@@ -22,7 +21,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         case EPS: assert(false and "Unexpected end of regex");
         case BAR: {
             // group re ahead of the bar
-            auto nfas = stack.popTillLastOpen();
+            auto nfas = stack.popTillLastGroupStart();
             stack.push(concatenateNFAs(nfas));
             stack.pushBar(pos);
             break;
@@ -31,12 +30,12 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             stack.pushOpenParen(pos);
             break;
         case RIGHT_PAREN:
-            matchLastOpenParen(stack, pos);
+            stack.push(parseLastGroup(stack, pos, true));
             break;
         case KLEENE_STAR:
         case PLUS:
         case QUESTION: {
-            if (stack.getLastOpen().posInRe + 1 == pos) {
+            if (stack.getLastGroupStart().posInRe + 1 == pos) {
                 throw NothingToRepeatException(pos);
             }
             NFA lastNfa = stack.popOne();
@@ -83,9 +82,38 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             stack.push(makeSymbol(sym));
         }
     }
-    NFA nfa = finishParsing(stack);
-    assert(stack.isEmpty());
+    NFA nfa = parseLastGroup(stack, 0, false);
     return nfa.startNode ? nfa.startNode : makeNFANode(true);
+}
+
+NodeManager::NFA NodeManager::parseLastGroup(REParsingStack& stack, const size_t pos, const bool matchParen) {
+    while (true) {
+        const auto lastGroupStartType = stack.getLastGroupStart().type;
+        const auto lastGroupStartPosInRe = stack.getLastGroupStart().posInRe;
+        auto nfas = stack.popTillLastGroupStart();
+        switch (lastGroupStartType) {
+            case REParsingStack::Pos_t::Type::open_parenthesis:
+                if (matchParen) {
+                    return concatenateNFAs(nfas);
+                }
+                else {
+                    throw MissingParenthsisException(lastGroupStartPosInRe);
+                }
+            case REParsingStack::Pos_t::Type::re_start:
+                if (matchParen) {
+                    throw UnbalancedParenthesisException(pos);
+                }
+                else {
+                    return concatenateNFAs(nfas);
+                }
+            case REParsingStack::Pos_t::Type::bar: {
+                NFA nfa = concatenateNFAs(nfas);
+                NFA lastNfa = stack.popOne();
+                stack.push(makeAlternation(lastNfa, nfa));
+                break;
+            }
+        }
+    }
 }
 
 NodeManager::NFA NodeManager::concatenateNFAs(std::vector<NFA>& nfas)
