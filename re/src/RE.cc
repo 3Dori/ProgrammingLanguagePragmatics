@@ -19,18 +19,15 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         switch (sym)
         {
         case EPS: assert(false and "Unexpected end of regex");
-        case BAR: {
-            // group re ahead of the bar
-            auto nfas = stack.popTillLastGroupStart();
-            stack.push(concatenateNFAs(nfas));
+        case BAR:
+            stack.push(parseLastGroup(stack, pos, GroupStartType::bar));
             stack.pushBar(pos);
             break;
-        }
         case LEFT_PAREN:
             stack.pushOpenParen(pos);
             break;
         case RIGHT_PAREN:
-            stack.push(parseLastGroup(stack, pos, true));
+            stack.push(parseLastGroup(stack, pos, GroupStartType::parenthesis));
             break;
         case KLEENE_STAR:
         case PLUS:
@@ -82,34 +79,36 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             stack.push(makeSymbol(sym));
         }
     }
-    NFA nfa = parseLastGroup(stack, 0, false);
+    NFA nfa = parseLastGroup(stack, 0, GroupStartType::re_start);
     return nfa.startNode ? nfa.startNode : makeNFANode(true);
 }
 
-NodeManager::NFA NodeManager::parseLastGroup(REParsingStack& stack, const size_t pos, const bool matchParen) {
+NodeManager::NFA NodeManager::parseLastGroup(REParsingStack& stack, const size_t pos, const GroupStartType type) {
     while (true) {
         const auto lastGroupStartType = stack.getLastGroupStart().type;
         const auto lastGroupStartPosInRe = stack.getLastGroupStart().posInRe;
-        auto nfas = stack.popTillLastGroupStart();
+        auto nfas = stack.popTillLastGroupStart(type);
         switch (lastGroupStartType) {
-            case REParsingStack::Pos_t::Type::open_parenthesis:
-                if (matchParen) {
-                    return concatenateNFAs(nfas);
+            case GroupStartType::parenthesis:
+                switch (type) {
+                    case GroupStartType::re_start:
+                        throw MissingParenthsisException(lastGroupStartPosInRe);
+                    case GroupStartType::bar:
+                    case GroupStartType::parenthesis:
+                        return concatenateNFAs(nfas);
                 }
-                else {
-                    throw MissingParenthsisException(lastGroupStartPosInRe);
+            case GroupStartType::re_start:
+                switch (type) {
+                    case GroupStartType::parenthesis:
+                        throw UnbalancedParenthesisException(pos);
+                    case GroupStartType::bar:
+                    case GroupStartType::re_start:
+                        return concatenateNFAs(nfas);
                 }
-            case REParsingStack::Pos_t::Type::re_start:
-                if (matchParen) {
-                    throw UnbalancedParenthesisException(pos);
-                }
-                else {
-                    return concatenateNFAs(nfas);
-                }
-            case REParsingStack::Pos_t::Type::bar: {
-                NFA nfa = concatenateNFAs(nfas);
-                NFA lastNfa = stack.popOne();
-                stack.push(makeAlternation(lastNfa, nfa));
+            case GroupStartType::bar: {
+                NFA nfaAfterBar = concatenateNFAs(nfas);
+                NFA nfaBeforeBar = stack.popOne();
+                stack.push(makeAlternation(nfaBeforeBar, nfaAfterBar));
                 break;
             }
         }

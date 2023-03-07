@@ -67,6 +67,17 @@ TEST(RETest, CanParseAndMatchExactBar_2) {
     EXPECT_FALSE(parser.matchExact("bc"));
 }
 
+TEST(RETest, CanParseAndMatchExactBar_3) {
+    RE::REParser parser("(a|b|c)");
+    EXPECT_TRUE(parser.matchExact("a"));
+    EXPECT_TRUE(parser.matchExact("b"));
+    EXPECT_TRUE(parser.matchExact("c"));
+    EXPECT_FALSE(parser.matchExact("ab"));
+    EXPECT_FALSE(parser.matchExact("bc"));
+    EXPECT_FALSE(parser.matchExact("ac"));
+    EXPECT_FALSE(parser.matchExact("1"));
+}
+
 TEST(RETest, KleeneStarExceptions) {
     EXPECT_THROW(RE::REParser parser("1**"), RE::MultipleRepeatException);
     EXPECT_THROW(RE::REParser parser("1+*"), RE::MultipleRepeatException);
@@ -221,4 +232,20 @@ TEST(RETest, CanParseAndMatchGeneralRE_1) {
     EXPECT_FALSE(parser.matchExact("1"));
     EXPECT_FALSE(parser.matchExact("aabd"));
     EXPECT_FALSE(parser.matchExact("bcdd"));
+}
+
+TEST(RETest, CanParseAndMatchGeneralRE_EmailAddress) {
+    // TODO currently wildcard . as well as \w is not supported
+    RE::REParser parser("(_|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)+@(gmail|yahoo|hotmail).com");
+    EXPECT_TRUE(parser.matchExact("alan_turing@gmail.com"));
+    EXPECT_TRUE(parser.matchExact("__admin__@hotmail.com"));
+    EXPECT_TRUE(parser.matchExact("abcdefghijklmnopqrstuvwxyz@yahoo.com"));
+
+    EXPECT_FALSE(parser.matchExact("alan.turing@gmail.com"));
+    EXPECT_FALSE(parser.matchExact("Alan_turing@gmail.com"));
+    EXPECT_FALSE(parser.matchExact("a1an_turing@yahoo.com"));
+    EXPECT_FALSE(parser.matchExact("alan@turing@gmail.com"));
+    EXPECT_FALSE(parser.matchExact("@gmail.com"));
+    EXPECT_FALSE(parser.matchExact("alan.turing@hotmail.com"));
+    EXPECT_FALSE(parser.matchExact("alan.turing@yahoo.jp"));
 }

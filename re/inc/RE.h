@@ -33,25 +33,27 @@ public:
         }
     };
 
+    enum class GroupStartType {
+        bar = 0u,
+        parenthesis = 1u,
+        re_start = 2u,
+    };
+
     class REParsingStack {
         using Stack_t = std::vector<NFA>;
     public:
-        struct Pos_t {
+        struct GroupStart {
             const size_t posInStack;
             const int32_t posInRe;
-            enum class Type {
-                open_parenthesis,
-                bar,
-                re_start
-            } type;
+            GroupStartType type;
         };
 
     private:
         Stack_t m_stack;
-        std::vector<Pos_t> m_groupStarts{{0, -1, Pos_t::Type::re_start}};
+        std::vector<GroupStart> m_groupStarts{{0u, -1, GroupStartType::re_start}};
 
     public:
-        const Pos_t& getLastGroupStart() const {
+        const GroupStart& getLastGroupStart() const {
             return m_groupStarts.back();
         }
 
@@ -64,11 +66,11 @@ public:
         }
 
         void pushOpenParen(const int32_t posInRe) {
-            m_groupStarts.push_back({m_stack.size(), posInRe, Pos_t::Type::open_parenthesis});
+            m_groupStarts.push_back({m_stack.size(), posInRe, GroupStartType::parenthesis});
         }
 
         void pushBar(const int32_t posInRe) {
-            m_groupStarts.push_back({m_stack.size(), posInRe, Pos_t::Type::bar});
+            m_groupStarts.push_back({m_stack.size(), posInRe, GroupStartType::bar});
         }
 
         NFA popOne() {
@@ -77,10 +79,10 @@ public:
             return ret;
         }
 
-        Stack_t popTillLastGroupStart() {
+        Stack_t popTillLastGroupStart(const GroupStartType type) {
             // Pop last group start
             const auto lastGroupStartPosInStack = getLastGroupStart().posInStack;
-            if (getLastGroupStart().type != Pos_t::Type::re_start) {
+            if (hasHigherOrEqualPredecence(type, getLastGroupStart().type)) {
                 m_groupStarts.pop_back();
             }
             // Pop nfas till last group start
@@ -89,13 +91,20 @@ public:
 
             return ret;
         }
+    private:
+        /**
+         * predecence: re_start > parenthesis > bar
+        */
+        bool hasHigherOrEqualPredecence(const GroupStartType a, const GroupStartType b) {
+            return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b);
+        }
     };
 
 private:
     DFANode* DFAFromNFA(NFANode*);  // TODO simplify DFA
     NFANode* NFAFromRe(std::string_view);
 
-    NFA parseLastGroup(REParsingStack&, const size_t, const bool);
+    NFA parseLastGroup(REParsingStack&, const size_t, const GroupStartType);
 
     NFA concatenateNFAs(std::vector<NFA>&);
 
