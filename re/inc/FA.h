@@ -17,19 +17,14 @@ class NFANode {
     friend class DFANode;
 
 public:
-    NFANode(const size_t id, const bool isFinal) : m_id(id), m_isFinal(isFinal) {}
+    NFANode(const size_t, const bool);
 
 private:
     NFANode(const NFANode&) = delete;
     NFANode& operator=(const NFANode&) = delete;
 
-    void addTransition(const char sym, NFANode* to) {
-        m_transitions[sym].insert(to);
-    }
-
-    bool hasTransition(const char sym) const {
-        return m_transitions.find(sym) != m_transitions.end();
-    }
+    void addTransition(const char, NFANode const*);
+    bool hasTransition(const char) const;
 
     const size_t m_id;
     bool m_isFinal;
@@ -50,48 +45,13 @@ private:
     DFANode& operator=(const DFANode&) = delete;
     DFANode(DFANode&&) = delete;
 
-    bool accept(std::string_view str) const {
-        DFANode const* node = this;
-        for (const auto c : str) {
-            if (not node->hasTransition(c)) {
-                return false;
-            }
-            else {
-                node = node->m_transitions.at(c);
-            }
-        }
-        return node->m_isFinal;
-    }
+    bool accept(std::string_view) const;
 
-    void addTransition(const char sym, DFANode* to) {
-        assert(sym != EPS);
-        m_transitions[sym] = to;
-    }
+    void addTransition(const char, DFANode*);
+    bool hasState(NFANode const*) const;
+    bool hasTransition(const char) const;
 
-    bool hasState(NFANode* nfaNode) const {
-        return m_NFANodes[nfaNode->m_id];
-    }
-
-    bool hasTransition(const char sym) const {
-        return m_transitions.find(sym) != m_transitions.end();
-    }
-
-    void bypassEPS(NFANode const* nfaNode) {
-        if (nfaNode->m_isFinal) {
-            m_isFinal = true;
-        }
-        m_NFANodes.set(nfaNode->m_id, true);
-        m_NFANodeSet.insert(nfaNode);
-
-        if (not nfaNode->hasTransition(EPS)) {
-            return;
-        }
-        for (auto const* to : nfaNode->m_transitions.at(EPS)) {  // in a DFS manner
-            if (not m_NFANodes[to->m_id]) {
-                bypassEPS(to);
-            }
-        }
-    }
+    void bypassEPS(NFANode const*);
 
     bool m_isFinal = false;
     std::map<char, DFANode*> m_transitions;
