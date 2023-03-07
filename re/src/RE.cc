@@ -13,7 +13,7 @@ namespace RE {
 
 // NFA
 NFANode* NodeManager::NFAFromRe(std::string_view re) {
-    assert(m_resultNfa.empty() and "m_resultNfa must be empty");
+    assert(m_resultNfas.empty() and "m_resultNfas must be empty");
     for (auto pos = 0u; pos < re.size(); ++pos) {
         const auto sym = re[pos];
         switch (sym)
@@ -26,7 +26,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         case KLEENE_STAR:
         case PLUS:
         case QUESTION:
-            m_resultNfa.push_back(makeRepeat(sym, pos));
+            m_resultNfas.push_back(makeRepeat(sym, pos));
             break;
         case ESCAPE:
         {
@@ -43,7 +43,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
                 case PLUS:
                 case QUESTION:
                 case ESCAPE:
-                    m_resultNfa.push_back(makeSymbol(nextSym));
+                    m_resultNfas.push_back(makeSymbol(nextSym));
                     break;
                 default:
                     throw EscapeException(nextSym, pos);
@@ -51,10 +51,17 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             break;
         }
         default:
-            m_resultNfa.push_back(makeSymbol(sym));
+            m_resultNfas.push_back(makeSymbol(sym));
             break;
         }
     }
+    return concatenateNFAs(m_resultNfas).startNode;
+}
+
+NodeManager::NFA NodeManager::concatenateNFAs(
+    const std::vector<NFA>::iterator begin,
+    const std::vector<NFA>::iterator end)
+{
     // TODO investigate it
     // NFA emptyNfa;
     // NFA nfa = std::accumulate(nfas.begin(), nfas.end(), emptyNfa,
@@ -63,13 +70,13 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
                             //       return makeConcatenation(a, b);
                             //   });
     NFA resultNfa;
-    for (auto& nfa : m_resultNfa) {
-        resultNfa = makeConcatenation(resultNfa, nfa);
+    for (auto it = begin; it < end; it++) {
+        resultNfa = makeConcatenation(resultNfa, *it);
     }
     if (resultNfa.startNode == nullptr) {
-        return makeNFANode(true);
+        return {makeNFANode(true), nullptr, NFA::Type::concatenation};
     }
-    return resultNfa.startNode;
+    return {resultNfa.startNode, resultNfa.endNode, NFA::Type::concatenation};
 }
 
 NFANode* NodeManager::makeNFANode(const bool isFinal) {
@@ -130,14 +137,14 @@ NodeManager::NFA NodeManager::makeQuestion(NFA& nfa) {
 }
 
 NodeManager::NFA NodeManager::makeRepeat(const char sym, const size_t pos) {
-    if (m_resultNfa.size() == 0) {
+    if (m_resultNfas.size() == 0) {
         throw NothingToRepeatException(pos);
     }
-    NFA lastNfa = m_resultNfa.back();
+    NFA lastNfa = m_resultNfas.back();
     if (lastNfa.type == NFA::Type::repeat) {
         throw MultipleRepeatException(pos);
     }
-    m_resultNfa.pop_back();
+    m_resultNfas.pop_back();
     switch (sym) {
         case KLEENE_STAR:
             return makeKleeneClousure(lastNfa);

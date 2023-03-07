@@ -31,6 +31,11 @@ class NodeManager {
 private:
     DFANode* DFAFromNFA(NFANode*);  // TODO simplify DFA
     NFANode* NFAFromRe(std::string_view);
+    NFA concatenateNFAs(const std::vector<NFA>::iterator begin,
+                        const std::vector<NFA>::iterator end);
+    inline NFA concatenateNFAs(std::vector<NFA>& nfas) {
+        return concatenateNFAs(nfas.begin(), nfas.end());
+    }
 
     NFANode* makeNFANode(const bool isFinal = false);
     NFA makeSymbol(const char);
@@ -51,7 +56,6 @@ private:
     DFANode* getDFANode(const NFASet&);
     void makeDFATransitions(DFANode*);
 
-    void advanceSymForEscape();
 private:
     /**
      * Use STL containers to automatically manage resourses
@@ -65,7 +69,7 @@ private:
     std::list<NFANode> m_NFAs;          // unlike vector, lists are never resized
     std::map<NFASet, DFANode> m_DFAs;   // unlike unordered_map, maps are never resized
 
-    std::vector<NFA> m_resultNfa;
+    std::vector<NFA> m_resultNfas;  // TODO remove this because this is an esay accessor
 };
 
 
