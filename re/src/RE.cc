@@ -21,6 +21,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         {
         case EPS: assert(false and "Unexpected end of regex");
         case BAR: {
+            // group re ahead of the bar
             auto nfas = stack.popTillLastOpen();
             stack.push(concatenateNFAs(nfas));
             stack.pushBar(pos);
@@ -35,7 +36,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         case KLEENE_STAR:
         case PLUS:
         case QUESTION: {
-            if (stack.getLastOpen().posInRe == pos) {
+            if (stack.getLastOpen().posInRe + 1 == pos) {
                 throw NothingToRepeatException(pos);
             }
             NFA lastNfa = stack.popOne();
@@ -120,10 +121,10 @@ NodeManager::NFA NodeManager::makeSymbol(const char sym) {
 }
 
 NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
-    if (a.startNode == nullptr) {
+    if (a.isEmpty()) {
         return b;
     }
-    if (b.startNode == nullptr) {
+    if (b.isEmpty()) {
         return a;
     }
     a.endNode->m_isFinal = false;
@@ -132,6 +133,16 @@ NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
 }
 
 NodeManager::NFA NodeManager::makeAlternation(NFA& a, NFA& b) {
+    if (a.isEmpty() and b.isEmpty()) {
+        return a;
+    }
+    else if (a.isEmpty()) {
+        return makeQuestion(b);
+    }
+    else if (b.isEmpty()) {
+        return makeQuestion(a);
+    }
+
     auto startNode = makeNFANode();
     auto endNode = makeNFANode(true);
 
@@ -139,7 +150,7 @@ NodeManager::NFA NodeManager::makeAlternation(NFA& a, NFA& b) {
     b.endNode->m_isFinal = false;
 
     startNode->addTransition(EPS, a.startNode);
-    startNode->addTransition(EPS, b.endNode);
+    startNode->addTransition(EPS, b.startNode);
 
     a.endNode->addTransition(EPS, endNode);
     b.endNode->addTransition(EPS, endNode);
@@ -213,98 +224,5 @@ bool REParser::matchExact(std::string_view str) const {
 int32_t REParser::find(std::string_view str) const {
     return -1;
 }
-
-// int32_t findRightParen(const char* re, uint32_t start) {
-//     auto numParenthesis = 0u;
-//     // TODO performance? One pass
-//     auto end = start + 1;
-//     while (re[end]) {
-//         switch (re[end])
-//         {
-//         case LEFT_PAREN:
-//             numParenthesis++;
-//             break;
-//         case RIGHT_PAREN:
-//             if (numParenthesis == 0) {
-//                 return end;
-//             }
-//             else {                                
-//                 numParenthesis--;
-//             }
-//             break;
-//         default:
-//             break;
-//         }
-//         end++;
-//     }
-//     throw ParenthesesMatchingException(
-//         "Missing right parenthesis: " + std::string(re + start));
-// }
-
-// RePreSP parseReToPre(const char* re, uint32_t start, uint32_t end) {
-//     while (start < end and re[start]) {
-//         const auto sym = re[start];
-//         switch (sym)
-//         {
-//         case LEFT_PAREN: {
-//             auto end = findRightParen(re, start);
-//             auto rePre = REParser::makeRePre(REParser::Type::concatenation, start+1, end-1);
-//             if (re[end+1] == KLEENE_STAR) {
-//                 rePre->type = REParser::Type::kleene_closure;
-//             }
-//             start = end;
-//         }
-//         case RIGHT_PAREN:
-//             throw ParenthesesMatchingException(
-//                 "Unexpected right parenthesis: " + std::string(re, start, end));
-//             break;
-//         }
-//         start++;
-//     }
-// }
-
-// DFANode* DFANode::NFAToDFA(const NFANode* nfa) {
-//     // DFANode* start = makeNode<DFANode>();
-
-//     start->NFANodes.insert(nfa);
-//     start->bypassEPS(nfa);
-//     start->bfsNFAToDFA();
-//     return start;
-// }
-
-// NFANodeSP constructNFA(const char* re, uint32_t start, uint32_t end) {
-//     auto startNode = NFANodeSP{new NFANode()};
-//     while (start < end and re[start]) {
-//         const auto sym = re[start];
-//         switch (sym)
-//         {
-//         case LEFT_PAREN: {
-//             auto rightParenIdx = findRightParen(re, start);
-//             auto subNFA = constructNFA(re, start + 1, rightParenIdx - 1);
-//             startNode->addTransition(EPS, false, subNFA);
-//             start = rightParenIdx;
-//             break;
-//         }
-//         case RIGHT_PAREN:
-//             throw ParenthesesMatchingException(
-//                 "Unexpected right parenthesis: " + std::string(re, start, end));
-//             break;
-//         case BAR:
-//             break;
-//         case KLEENE_STAR:
-//             break;
-//         default: {
-//             auto subNFA = constructNFA(re, start + 1, end);
-//             startNode->addTransition(sym, false, subNFA);
-//         }
-//         }
-//         start++;
-//     }
-//     return startNode;
-// }
-
-// NFANodeSP constructNFA(const std::string& re) {
-//     return constructNFA(re.c_str(), 0, re.size());
-// }
 
 } // namespace RE

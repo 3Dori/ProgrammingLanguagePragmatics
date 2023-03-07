@@ -27,6 +27,10 @@ public:
             alternation,
             unimplemented
         } type;
+
+        bool isEmpty() const {
+            return startNode == nullptr;
+        }
     };
 
     class REParsingStack {
@@ -34,7 +38,7 @@ public:
     public:
         struct Pos_t {
             const size_t posInStack;
-            const size_t posInRe;
+            const int32_t posInRe;
             enum class Type {
                 open_parenthesis,
                 bar,
@@ -44,11 +48,11 @@ public:
 
     private:
         Stack_t m_stack;
-        std::vector<Pos_t> m_opens{{0, 0, Pos_t::Type::re_start}};
+        std::vector<Pos_t> m_groupStarts{{0, -1, Pos_t::Type::re_start}};
 
     public:
         const Pos_t& getLastOpen() const {
-            return m_opens.back();
+            return m_groupStarts.back();
         }
 
         bool isEmpty() const {
@@ -59,12 +63,12 @@ public:
             m_stack.push_back(nfa);
         }
 
-        void pushOpenParen(const size_t posInRe) {
-            m_opens.push_back({m_stack.size(), posInRe, Pos_t::Type::open_parenthesis});
+        void pushOpenParen(const int32_t posInRe) {
+            m_groupStarts.push_back({m_stack.size(), posInRe, Pos_t::Type::open_parenthesis});
         }
 
-        void pushBar(const size_t posInRe) {
-            m_opens.push_back({m_stack.size(), posInRe, Pos_t::Type::bar});
+        void pushBar(const int32_t posInRe) {
+            m_groupStarts.push_back({m_stack.size(), posInRe, Pos_t::Type::bar});
         }
 
         /**
@@ -82,8 +86,10 @@ public:
         // TODO check: a pop must be followed by a push, except the last one
         Stack_t popTillLastOpen() {
             // Pop last open
-            const auto lastOpenPos = m_opens.back().posInStack;
-            m_opens.pop_back();
+            const auto lastOpenPos = getLastOpen().posInStack;
+            if (getLastOpen().type != Pos_t::Type::re_start) {
+                m_groupStarts.pop_back();
+            }
             // Pop nfas till last open
             const auto ret = Stack_t(m_stack.begin() + lastOpenPos, m_stack.end());
             m_stack.resize(lastOpenPos);
