@@ -25,17 +25,28 @@ TEST(RETest, CanParseAndMatchExactEmptyRe) {
     EXPECT_FALSE(parser.matchExact("aa"));
 }
 
-// TEST(RETest, ParenthesesExceptions) {
-//     EXPECT_THROW(RE::REParser("("), MissingParenthsisException);
-//     EXPECT_THROW(RE::REParser("a("), MissingParenthsisException);
-//     EXPECT_THROW(RE::REParser("(a(b)c)("), MissingParenthsisException);
-//     EXPECT_THROW(RE::REParser("(()"), MissingParenthsisException);
+TEST(RETest, ParenthesesExceptions) {
+    EXPECT_THROW(RE::REParser("("), RE::MissingParenthsisException);
+    EXPECT_THROW(RE::REParser("a("), RE::MissingParenthsisException);
+    EXPECT_THROW(RE::REParser("(a(b)c)("), RE::MissingParenthsisException);
+    EXPECT_THROW(RE::REParser("(()"), RE::MissingParenthsisException);
 
-//     EXPECT_THROW(RE::REParser(")"), UnbalancedParenthesisException);
-//     EXPECT_THROW(RE::REParser("a)"), UnbalancedParenthesisException);
-//     EXPECT_THROW(RE::REParser("())"), UnbalancedParenthesisException);
-//     EXPECT_THROW(RE::REParser("a(()())b())"), UnbalancedParenthesisException);
-// }
+    EXPECT_THROW(RE::REParser(")"), RE::UnbalancedParenthesisException);
+    EXPECT_THROW(RE::REParser("a)"), RE::UnbalancedParenthesisException);
+    EXPECT_THROW(RE::REParser("())"), RE::UnbalancedParenthesisException);
+    EXPECT_THROW(RE::REParser("a(()())b())"), RE::UnbalancedParenthesisException);
+}
+
+TEST(RETest, CanParseAndMatchExactParentheses) {
+    EXPECT_TRUE(RE::REParser("()()").matchExact(""));
+    EXPECT_TRUE(RE::REParser("(a)(b)").matchExact("ab"));
+    EXPECT_FALSE(RE::REParser("(a)(b)").matchExact("a"));
+    EXPECT_TRUE(RE::REParser("(ab)").matchExact("ab"));
+    EXPECT_FALSE(RE::REParser("(ab)").matchExact("1"));
+    EXPECT_TRUE(RE::REParser("(((((((ab)))))))").matchExact("ab"));
+    EXPECT_TRUE(RE::REParser("()((((ab))()(((())()))))").matchExact("ab"));
+    EXPECT_FALSE(RE::REParser("()((((ab))()(((())()))))").matchExact("b"));
+}
 
 // TEST(RETest, CanParseAndMatchExactBar_1) {
 //     EXPECT_TRUE(RE::REParser("|").matchExact(""));

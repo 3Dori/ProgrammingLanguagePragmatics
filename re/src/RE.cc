@@ -30,7 +30,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             stack.pushOpenParen(pos);
             break;
         case RIGHT_PAREN:
-            stack.push(matchLastOpenParen(stack, pos));
+            matchLastOpenParen(stack, pos);
             break;
         case KLEENE_STAR:
         case PLUS:
@@ -45,10 +45,13 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             switch (sym) {
                 case KLEENE_STAR:
                     stack.push(makeKleeneClousure(lastNfa));
+                    break;
                 case PLUS:
                     stack.push(makePlus(lastNfa));
+                    break;
                 case QUESTION:
                     stack.push(makeQuestion(lastNfa));
+                    break;
                 default:
                     assert(false and "Unexpected repeat symbol");
             }
@@ -81,7 +84,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
     }
     NFA nfa = finishParsing(stack);
     assert(stack.isEmpty());
-    return nfa.startNode;
+    return nfa.startNode ? nfa.startNode : makeNFANode(true);
 }
 
 NodeManager::NFA NodeManager::concatenateNFAs(std::vector<NFA>& nfas)
@@ -97,12 +100,7 @@ NodeManager::NFA NodeManager::concatenateNFAs(std::vector<NFA>& nfas)
     for (auto& nfa : nfas) {
         resultNfa = makeConcatenation(resultNfa, nfa);
     }
-    if (resultNfa.startNode == nullptr) {
-        return {makeNFANode(true), nullptr, NFA::Type::concatenation};  // Trival case for empty RE
-    }
-    else {
-        return {resultNfa.startNode, resultNfa.endNode, NFA::Type::concatenation};
-    }
+    return {resultNfa.startNode, resultNfa.endNode, NFA::Type::concatenation};
 }
 
 NFANode* NodeManager::makeNFANode(const bool isFinal) {
@@ -124,6 +122,9 @@ NodeManager::NFA NodeManager::makeSymbol(const char sym) {
 NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
     if (a.startNode == nullptr) {
         return b;
+    }
+    if (b.startNode == nullptr) {
+        return a;
     }
     a.endNode->m_isFinal = false;
     a.endNode->addTransition(EPS, b.startNode);

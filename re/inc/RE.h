@@ -73,9 +73,9 @@ public:
          * @return NFA 
          */
         NFA popOne() {
+            assert(not m_stack.empty() and "Stack cannot be empty for popping");
             const auto ret = m_stack.back();
             m_stack.pop_back();
-            assert(m_opens.back().posInStack != m_stack.size() and "Unexpected open symbol when popping");
             return ret;
         }
 
@@ -115,6 +115,7 @@ private:
             switch (lastOpenType) {
                 case REParsingStack::Pos_t::Type::open_parenthesis:
                     throw MissingParenthsisException(lastOpenPosInRe);
+                    break;
                 case REParsingStack::Pos_t::Type::bar: {
                     NFA nfa = concatenateNFAs(nfas);
                     NFA lastNfa = stack.popOne();
@@ -122,19 +123,20 @@ private:
                     break;
                 }
                 case REParsingStack::Pos_t::Type::re_start:
-                    return stack.popOne();
+                    return concatenateNFAs(nfas);
             }
         }
     }
 
     // TODO refactor with finishParsing
-    NFA matchLastOpenParen(REParsingStack& stack, const size_t pos) {
+    void matchLastOpenParen(REParsingStack& stack, const size_t pos) {
         while (true) {
             const auto lastOpenType = stack.getLastOpen().type;
             auto nfas = stack.popTillLastOpen();
             switch (lastOpenType) {
                 case REParsingStack::Pos_t::Type::open_parenthesis:
-                    return concatenateNFAs(nfas);
+                    stack.push(concatenateNFAs(nfas));
+                    return;
                 case REParsingStack::Pos_t::Type::bar: {
                     NFA nfa = concatenateNFAs(nfas);
                     NFA lastNfa = stack.popOne();
