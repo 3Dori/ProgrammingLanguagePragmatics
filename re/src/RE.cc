@@ -1,4 +1,5 @@
 #include "RE.h"
+// #include "REParsingStack.h" TODO remove
 
 #include <iostream>
 #include <numeric>
@@ -13,23 +14,47 @@ namespace RE {
 
 // NFA
 NFANode* NodeManager::NFAFromRe(std::string_view re) {
-    assert(m_resultNfas.empty() and "m_resultNfas must be empty");
+    REParsingStack stack;
     for (auto pos = 0u; pos < re.size(); ++pos) {
         const auto sym = re[pos];
         switch (sym)
         {
         case EPS: assert(false and "Unexpected end of regex");
-        case BAR:
+        case BAR: {
+            auto nfas = stack.popTillLastOpen();
+            stack.push(concatenateNFAs(nfas));
+            stack.pushBar(pos);
+            break;
+        }
         case LEFT_PAREN:
+            stack.pushOpenParen(pos);
+            break;
         case RIGHT_PAREN:
-            assert(false and "Unimplemented");
+            stack.push(matchLastOpenParen(stack, pos));
+            break;
         case KLEENE_STAR:
         case PLUS:
-        case QUESTION:
-            m_resultNfas.push_back(makeRepeat(sym, pos));
+        case QUESTION: {
+            if (stack.getLastOpen().posInRe == pos) {
+                throw NothingToRepeatException(pos);
+            }
+            NFA lastNfa = stack.popOne();
+            if (lastNfa.type == NFA::Type::repeat) {
+                throw MultipleRepeatException(pos);
+            }
+            switch (sym) {
+                case KLEENE_STAR:
+                    stack.push(makeKleeneClousure(lastNfa));
+                case PLUS:
+                    stack.push(makePlus(lastNfa));
+                case QUESTION:
+                    stack.push(makeQuestion(lastNfa));
+                default:
+                    assert(false and "Unexpected repeat symbol");
+            }
             break;
-        case ESCAPE:
-        {
+        }
+        case ESCAPE: {
             pos++;
             if (pos == re.size()) {
                 throw EscapeException("Escape reaches the end of the input");
@@ -43,7 +68,7 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
                 case PLUS:
                 case QUESTION:
                 case ESCAPE:
-                    m_resultNfas.push_back(makeSymbol(nextSym));
+                    stack.push(makeSymbol(nextSym));
                     break;
                 default:
                     throw EscapeException(nextSym, pos);
@@ -51,16 +76,15 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
             break;
         }
         default:
-            m_resultNfas.push_back(makeSymbol(sym));
-            break;
+            stack.push(makeSymbol(sym));
         }
     }
-    return concatenateNFAs(m_resultNfas).startNode;
+    NFA nfa = finishParsing(stack);
+    assert(stack.isEmpty());
+    return nfa.startNode;
 }
 
-NodeManager::NFA NodeManager::concatenateNFAs(
-    const std::vector<NFA>::iterator begin,
-    const std::vector<NFA>::iterator end)
+NodeManager::NFA NodeManager::concatenateNFAs(std::vector<NFA>& nfas)
 {
     // TODO investigate it
     // NFA emptyNfa;
@@ -70,13 +94,15 @@ NodeManager::NFA NodeManager::concatenateNFAs(
                             //       return makeConcatenation(a, b);
                             //   });
     NFA resultNfa;
-    for (auto it = begin; it < end; it++) {
-        resultNfa = makeConcatenation(resultNfa, *it);
+    for (auto& nfa : nfas) {
+        resultNfa = makeConcatenation(resultNfa, nfa);
     }
     if (resultNfa.startNode == nullptr) {
-        return {makeNFANode(true), nullptr, NFA::Type::concatenation};
+        return {makeNFANode(true), nullptr, NFA::Type::concatenation};  // Trival case for empty RE
     }
-    return {resultNfa.startNode, resultNfa.endNode, NFA::Type::concatenation};
+    else {
+        return {resultNfa.startNode, resultNfa.endNode, NFA::Type::concatenation};
+    }
 }
 
 NFANode* NodeManager::makeNFANode(const bool isFinal) {
@@ -134,27 +160,6 @@ NodeManager::NFA NodeManager::makePlus(NFA& nfa) {
 NodeManager::NFA NodeManager::makeQuestion(NFA& nfa) {
     nfa.startNode->addTransition(EPS, nfa.endNode);
     return {nfa.startNode, nfa.endNode, NFA::Type::repeat};
-}
-
-NodeManager::NFA NodeManager::makeRepeat(const char sym, const size_t pos) {
-    if (m_resultNfas.size() == 0) {
-        throw NothingToRepeatException(pos);
-    }
-    NFA lastNfa = m_resultNfas.back();
-    if (lastNfa.type == NFA::Type::repeat) {
-        throw MultipleRepeatException(pos);
-    }
-    m_resultNfas.pop_back();
-    switch (sym) {
-        case KLEENE_STAR:
-            return makeKleeneClousure(lastNfa);
-        case PLUS:
-            return makePlus(lastNfa);
-        case QUESTION:
-            return makeQuestion(lastNfa);
-        default:
-            assert(false and "Unexpected repeat symbol");
-    }
 }
 
 // DFA
@@ -231,7 +236,7 @@ int32_t REParser::find(std::string_view str) const {
 //         }
 //         end++;
 //     }
-//     throw ParenthesisMatchingException(
+//     throw ParenthesesMatchingException(
 //         "Missing right parenthesis: " + std::string(re + start));
 // }
 
@@ -249,7 +254,7 @@ int32_t REParser::find(std::string_view str) const {
 //             start = end;
 //         }
 //         case RIGHT_PAREN:
-//             throw ParenthesisMatchingException(
+//             throw ParenthesesMatchingException(
 //                 "Unexpected right parenthesis: " + std::string(re, start, end));
 //             break;
 //         }
@@ -280,7 +285,7 @@ int32_t REParser::find(std::string_view str) const {
 //             break;
 //         }
 //         case RIGHT_PAREN:
-//             throw ParenthesisMatchingException(
+//             throw ParenthesesMatchingException(
 //                 "Unexpected right parenthesis: " + std::string(re, start, end));
 //             break;
 //         case BAR:

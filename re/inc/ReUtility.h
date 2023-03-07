@@ -49,9 +49,19 @@ public:
     explicit REException(const std::string& message) : std::runtime_error(message) {}
 };
 
-class ParenthesisMatchingException : public REException {
+class UnbalancedParenthesisException : public REException {
 public:
-    explicit ParenthesisMatchingException(const std::string& message) : REException(message) {}
+    explicit UnbalancedParenthesisException(const size_t pos) :
+        REException("Unbalanced parenthesis at position " + std::to_string(pos))
+    {}
+};
+
+class MissingParenthsisException : public REException {
+public:
+    explicit MissingParenthsisException(const size_t posOpenParen) : 
+        REException("Missing parenthesis, unterminated open parenthsis at position " +
+                    std::to_string(posOpenParen))
+    {}
 };
 
 class NFANumLimitExceededExpection : public REException {
