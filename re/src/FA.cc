@@ -1,4 +1,5 @@
 #include "FA.h"
+#include "REDef.h"
 
 namespace RE
 {
@@ -43,7 +44,7 @@ bool DFANode::hasTransition(const char sym) const {
     return m_transitions.find(sym) != m_transitions.end();
 }
 
-void DFANode::bypassEPS(NFANode const* nfaNode) {
+void DFANode::mergeEPSTransition(NFANode const* nfaNode) {
     if (nfaNode->m_isFinal) {
         m_isFinal = true;
     }
@@ -55,7 +56,7 @@ void DFANode::bypassEPS(NFANode const* nfaNode) {
     }
     for (auto const* to : nfaNode->m_transitions.at(EPS)) {  // in a DFS manner
         if (not m_NFANodes[to->m_id]) {
-            bypassEPS(to);
+            mergeEPSTransition(to);
         }
     }
 }

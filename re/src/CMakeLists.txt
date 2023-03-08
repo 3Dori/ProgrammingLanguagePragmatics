@@ -3,4 +3,5 @@ add_library(
     RE
     FA.cc
     RE.cc
+    REUtility.cc
 )

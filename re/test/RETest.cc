@@ -1,4 +1,5 @@
-#include "RE.h"
+#include <RE.h>
+#include <REExceptions.h>
 
 #include <gtest/gtest.h>
 
