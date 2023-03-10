@@ -17,6 +17,6 @@ enum ReservedSymbol {
 };
 
 constexpr size_t MAX_NFA_NODE_NUM = 1024;
-using NFASet = std::bitset<MAX_NFA_NODE_NUM>;
+using NodeSet = std::bitset<MAX_NFA_NODE_NUM>;
 
 } // namespace RE

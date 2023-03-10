@@ -6,6 +6,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <memory>
 #include <set>
 
 namespace RE
@@ -50,9 +51,8 @@ public:
     }
 
 private:
-    DFANode* DFAFromNFA(NFANode*);  // TODO simplify DFA
+    // NFA
     NFANode* NFAFromRe(std::string_view);
-
     /**
      * Pop the parsing stack and push the NFA representing a group until:
      * switch (type)
@@ -73,14 +73,22 @@ private:
     NFA makePlus(NFA&);
     NFA makeQuestion(NFA&);
 
-    DFANode* makeDFANode(const std::set<NFANode const*>&);
-
-    inline DFANode* makeDFANode(NFANode const* nfaNode) {
-        return makeDFANode(std::set<NFANode const*>{nfaNode});
+    // DFA
+    DFANodeFromNFA* DFAFromNFA(NFANode*);
+    DFANodeFromNFA* getDFANode(const std::set<NFANode const*>&);
+    inline DFANodeFromNFA* getDFANode(NFANode const* nfaNode) {
+        return getDFANode(std::set<NFANode const*>{nfaNode});
     }
 
-    DFANode* getDFANode(const NFASet&);
-    void generateDFATransitions(DFANode*);
+    inline DFANodeFromNFA* tryAddAndGetDFANode(DFANodeFromNFA& dfaNode) {
+        const auto NFANodesInvolved = dfaNode.m_NFANodes;
+        if (m_DFAs.find(NFANodesInvolved) == m_DFAs.end()) {
+            m_DFAs.try_emplace(NFANodesInvolved, std::move(dfaNode));
+            m_DFAsIndexed.push_back(&(m_DFAs.at(NFANodesInvolved)));
+        }
+        return &(m_DFAs.at(NFANodesInvolved));
+    }
+    void generateDFATransitions(DFANodeFromNFA*);
 
 private:
     /**
@@ -93,7 +101,38 @@ private:
      * are invalidated, resulting in undefined behaviors.
      */
     std::list<NFANode> m_NFAs;          // unlike vector, lists are never resized
-    std::map<NFASet, DFANode> m_DFAs;   // unlike unordered_map, maps are never resized
+    std::map<NodeSet, DFANodeFromNFA> m_DFAs;   // unlike unordered_map, maps are never resized
+
+    std::vector<DFANodeFromNFA const*> m_DFAsIndexed;
+};
+
+class DFAMinimizer {
+public:
+    struct MergedDfaNode {
+        MergedDfaNode(const int32_t id, const bool isFinal)
+            : id(id), isFinal(isFinal) {}
+        int32_t id;
+        bool isFinal;
+        std::set<DFANodeFromNFA const*> dfaNodes;
+    };
+    using MergedDfaNodes_it = std::list<MergedDfaNode>::iterator;
+
+public:
+    DFAMinimizer(const std::vector<DFANodeFromNFA const*>&);
+    std::unique_ptr<DFA> minimize();
+
+private:
+    MergedDfaNode* makeMergedDfaNode(const bool);
+    void splitMergedDfaNodes(const MergedDfaNode&, const char);
+    char searchForAmbiguousSymbol(const MergedDfaNode&) const;
+    std::unique_ptr<DFA> constructMinimizedDFA() const;
+    void mergeTransitions(const MergedDfaNode&, DFA&) const;
+
+private:
+    std::vector<int32_t> m_DFAToMergedDFA;
+
+    std::map<int32_t, MergedDfaNode> m_mergedDfaNodes;  // fixed capacity
+    int32_t m_mergedDfaNodesId = 0;
 };
 
 class REParsingStack {

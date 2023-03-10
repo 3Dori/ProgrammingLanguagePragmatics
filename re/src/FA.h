@@ -38,13 +38,16 @@ bool operator<(const std::bitset<N>& lhs, const std::bitset<N>& rhs) noexcept {
 
 namespace RE {
 
+// TODO rename to states?
 class NFANode {
     friend class REParser;
     friend class NodeManager;
-    friend class DFANode;
+    friend class DFANodeFromNFA;
 
 public:
-    NFANode(const size_t, const bool);
+    explicit NFANode(const size_t id, const bool isFinal) :
+        m_id(id), m_isFinal(isFinal)
+    {}
 
 private:
     NFANode(const NFANode&) = delete;
@@ -59,31 +62,68 @@ private:
 };
 
 class DFANode {
-    friend class REParser;
-    friend class NodeManager;
-    friend class NFANode;
+    friend class DFAMinimizer;
 
 public:
-    DFANode() = default;
-    DFANode& operator=(DFANode&&) = default;
-
-private:
-    DFANode(const DFANode&) = delete;
-    DFANode& operator=(const DFANode&) = delete;
-    DFANode(DFANode&&) = delete;
+    // DFANode() = default;
+    DFANode(const size_t id, const bool isFinal = false)
+        : m_id(id), m_isFinal(isFinal) {}
 
     bool accept(std::string_view) const;
 
+protected:
     void addTransition(const char, DFANode*);
-    bool hasState(NFANode const*) const;
     bool hasTransition(const char) const;
+
+protected:
+    size_t m_id;  // TODO: eliminate the need to use id
+    bool m_isFinal = false;
+    std::map<char, DFANode*> m_transitions;  // TODO use const ptr
+};
+
+class DFANodeFromNFA : public DFANode {
+    friend class REParser;
+    friend class NodeManager;
+    friend class NFANode;
+    friend class DFAMinimizer;
+
+public:
+    // DFANodeFromNFA() = default;
+    DFANodeFromNFA(const size_t id, const bool isFinal = false)
+        : DFANode(id, isFinal) {}
+    DFANodeFromNFA(DFANodeFromNFA&&) = default;
+
+private:
+    DFANodeFromNFA(const DFANodeFromNFA&) = delete;
+    DFANodeFromNFA& operator=(const DFANodeFromNFA&) = delete;
+    DFANodeFromNFA& operator=(DFANodeFromNFA&&) = delete;
+
+    bool hasState(NFANode const*) const;
 
     void mergeEPSTransition(NFANode const*);
 
-    bool m_isFinal = false;
-    std::map<char, DFANode*> m_transitions;
-    NFASet m_NFANodes;   // id of a DFA node
+private:
+    NodeSet m_NFANodes;   // id of a DFA node
     std::set<NFANode const*> m_NFANodeSet;  // easy accessor to NFA nodes
+};
+
+
+class DFA {    
+    friend class DFAMinimizer;
+
+public:
+    bool accept(std::string_view str) const {
+        return m_start->accept(str);
+    }
+
+private:
+    void setStart(const int32_t start) {
+        m_start = &(m_nodes.at(start));
+    }
+
+private:
+    std::map<int32_t, DFANode> m_nodes;  // actual storage
+    DFANode const* m_start;
 };
 
 } // namespace RE

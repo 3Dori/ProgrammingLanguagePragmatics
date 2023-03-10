@@ -1,14 +1,11 @@
 #include "FA.h"
 #include "REDef.h"
+#include "REUtility.h"
 
 namespace RE
 {
 
 // NFA
-NFANode::NFANode(const size_t id, const bool isFinal) :
-    m_id(id), m_isFinal(isFinal)
-{}
-
 void NFANode::addTransition(const char sym, NFANode const* to) {
     m_transitions[sym].insert(to);
 }
@@ -36,15 +33,15 @@ void DFANode::addTransition(const char sym, DFANode* to) {
     m_transitions[sym] = to;
 }
 
-bool DFANode::hasState(NFANode const* nfaNode) const {
-    return m_NFANodes[nfaNode->m_id];
-}
-
 bool DFANode::hasTransition(const char sym) const {
     return m_transitions.find(sym) != m_transitions.end();
 }
 
-void DFANode::mergeEPSTransition(NFANode const* nfaNode) {
+bool DFANodeFromNFA::hasState(NFANode const* nfaNode) const {
+    return m_NFANodes[nfaNode->m_id];
+}
+
+void DFANodeFromNFA::mergeEPSTransition(NFANode const* nfaNode) {
     if (nfaNode->m_isFinal) {
         m_isFinal = true;
     }
