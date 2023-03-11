@@ -13,6 +13,14 @@ TEST(RETest, CanParseAndMatchExactBasicSym_1) {
 }
 
 TEST(RETest, CanParseAndMatchExactBasicSym_2) {
+    RE::REParser parser("aa");
+    EXPECT_TRUE(parser.matchExact("aa"));
+    EXPECT_FALSE(parser.matchExact("a"));
+    EXPECT_FALSE(parser.matchExact("aaa"));
+    EXPECT_FALSE(parser.matchExact("a1"));
+}
+
+TEST(RETest, CanParseAndMatchExactBasicSym_3) {
     RE::REParser parser("abcd");
     EXPECT_TRUE(parser.matchExact("abcd"));
     EXPECT_FALSE(parser.matchExact("aaaabcd"));

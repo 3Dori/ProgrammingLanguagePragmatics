@@ -65,14 +65,20 @@ class DFANode {
     friend class DFAMinimizer;
 
 public:
-    // DFANode() = default;
     DFANode(const size_t id, const bool isFinal = false)
         : m_id(id), m_isFinal(isFinal) {}
 
+    DFANode(DFANode&&) = default;  // TODO avoid moving
+
     bool accept(std::string_view) const;
 
+private:
+    DFANode(const DFANode&) = delete;
+    DFANode& operator=(const DFANode&) = delete;
+    DFANode& operator=(DFANode&&) = delete;
+
 protected:
-    void addTransition(const char, DFANode*);
+    void addTransition(const char, DFANode const*);
     bool hasTransition(const char) const;
 
 protected:
@@ -88,21 +94,17 @@ class DFANodeFromNFA : public DFANode {
     friend class DFAMinimizer;
 
 public:
-    // DFANodeFromNFA() = default;
     DFANodeFromNFA(const size_t id, const bool isFinal = false)
         : DFANode(id, isFinal) {}
     DFANodeFromNFA(DFANodeFromNFA&&) = default;
 
 private:
-    DFANodeFromNFA(const DFANodeFromNFA&) = delete;
-    DFANodeFromNFA& operator=(const DFANodeFromNFA&) = delete;
-    DFANodeFromNFA& operator=(DFANodeFromNFA&&) = delete;
-
     bool hasState(NFANode const*) const;
 
     void mergeEPSTransition(NFANode const*);
 
 private:
+    // TODO use only m_NFANodeSet
     NodeSet m_NFANodes;   // id of a DFA node
     std::set<NFANode const*> m_NFANodeSet;  // easy accessor to NFA nodes
 };
@@ -112,7 +114,7 @@ class DFA {
     friend class DFAMinimizer;
 
 public:
-    bool accept(std::string_view str) const {
+    inline bool accept(std::string_view str) const {
         return m_start->accept(str);
     }
 

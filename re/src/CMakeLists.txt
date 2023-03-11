@@ -4,4 +4,5 @@ add_library(
     FA.cc
     RE.cc
     REUtility.cc
+    DFAMinimizer.cc
 )

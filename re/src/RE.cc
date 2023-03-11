@@ -1,6 +1,7 @@
 #include "FA.h"
 #include "REDef.h"
 #include "REUtility.h"
+#include "DFAMinimizer.h"
 
 #include <REExceptions.h>
 #include <RE.h>

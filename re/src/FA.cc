@@ -28,8 +28,9 @@ bool DFANode::accept(std::string_view str) const {
     return node->m_isFinal;
 }
 
-void DFANode::addTransition(const char sym, DFANode* to) {
+void DFANode::addTransition(const char sym, DFANode const* to) {
     assert(sym != EPS);
+    assert(m_transitions.find(sym) == m_transitions.end());
     m_transitions[sym] = to;
 }
 
@@ -51,7 +52,8 @@ void DFANodeFromNFA::mergeEPSTransition(NFANode const* nfaNode) {
     if (not nfaNode->hasTransition(EPS)) {
         return;
     }
-    for (auto const* to : nfaNode->m_transitions.at(EPS)) {  // in a DFS manner
+    for (auto const* to : nfaNode->m_transitions.at(EPS)) {
+        // in a DFS manner
         if (not m_NFANodes[to->m_id]) {
             mergeEPSTransition(to);
         }
