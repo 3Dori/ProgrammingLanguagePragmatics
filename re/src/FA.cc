@@ -1,6 +1,5 @@
 #include "FA.h"
 #include "REDef.h"
-#include "REUtility.h"
 
 namespace RE
 {

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "FA.h"
 
 #include <cstddef>
@@ -28,6 +30,7 @@ private:
     MergedDfaNode* makeMergedDfaNode(const bool);
     void splitMergedDfaNodes(const MergedDfaNode&, const char);
     char searchForAmbiguousSymbol(const MergedDfaNode&) const;
+    void removeDeadState();
     std::unique_ptr<DFA> constructMinimizedDFA() const;
     void mergeTransitions(const MergedDfaNode&, DFA&) const;
 
@@ -36,6 +39,7 @@ private:
 
     std::map<int32_t, MergedDfaNode> m_mergedDfaNodes;  // fixed capacity
     int32_t m_mergedDfaNodesId = 0;
+    DFANodeFromNFA const* m_deadState;
 };
 
 } // namespace RE

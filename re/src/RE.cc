@@ -1,6 +1,7 @@
 #include "FA.h"
 #include "REDef.h"
-#include "REUtility.h"
+#include "REParsingStack.h"
+#include "NodeManager.h"
 #include "DFAMinimizer.h"
 
 #include <REExceptions.h>
