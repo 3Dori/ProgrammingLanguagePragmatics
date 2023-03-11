@@ -78,7 +78,7 @@ protected:
 protected:
     size_t m_id;  // TODO: eliminate the need to use id
     bool m_isFinal = false;
-    std::map<char, DFANode*> m_transitions;  // TODO use const ptr
+    std::map<char, DFANode const*> m_transitions;  // TODO use const ptr
 };
 
 class DFANodeFromNFA : public DFANode {

@@ -6,6 +6,7 @@ namespace RE
 {
 
 class NFANode;
+class DFA;
 class DFANodeFromNFA;
 class NodeManager;
 
@@ -19,7 +20,7 @@ public:
 
 private:
     std::unique_ptr<NodeManager> m_nodeManager;
-    DFANodeFromNFA* m_dfa = nullptr;
+    std::unique_ptr<DFA> m_dfa;
 };
 
 } // namespace RE

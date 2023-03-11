@@ -11,16 +11,14 @@
 #include <functional>
 #include <vector>
 
-// using std::placeholders::_1;
-// using std::placeholders::_2;  TODO remove
-
 namespace RE {
 
 REParser::REParser(std::string_view re) :
     m_nodeManager(new NodeManager())
 {
     NFANode* nfa = m_nodeManager->NFAFromRe(re);
-    m_dfa = m_nodeManager->DFAFromNFA(nfa);
+    DFANodeFromNFA* dfa = m_nodeManager->DFAFromNFA(nfa);
+    m_dfa = DFAMinimizer(m_nodeManager->m_DFAsIndexed).minimize();
 }
 
 REParser::~REParser() = default;
