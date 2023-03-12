@@ -18,6 +18,7 @@ class REParsingStack;
  */
 class NodeManager {
     friend class REParser;
+    friend class DFAMinimizer;
 
 public:
     struct NFA {

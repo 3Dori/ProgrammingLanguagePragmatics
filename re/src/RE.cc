@@ -20,7 +20,7 @@ REParser::REParser(std::string_view re) :
 {
     NFANode* nfa = m_nodeManager->NFAFromRe(re);
     DFANodeFromNFA* dfa = m_nodeManager->DFAFromNFA(nfa);
-    m_dfa = DFAMinimizer(m_nodeManager->m_DFAsIndexed).minimize();
+    m_dfa = DFAMinimizer(m_nodeManager).minimize();
 }
 
 REParser::~REParser() = default;

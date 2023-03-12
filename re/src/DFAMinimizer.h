@@ -11,6 +11,8 @@
 namespace RE
 {
 
+class NodeManager;
+
 class DFAMinimizer {
 public:
     struct MergedDfaNode {
@@ -23,7 +25,7 @@ public:
     using MergedDfaNodes_it = std::list<MergedDfaNode>::iterator;
 
 public:
-    DFAMinimizer(std::vector<DFANodeFromNFA*>&);
+    DFAMinimizer(std::unique_ptr<NodeManager>&);
     std::unique_ptr<DFA> minimize();
 
 private:
@@ -33,7 +35,10 @@ private:
     std::unique_ptr<DFA> constructMinimizedDFA() const;
     void mergeTransitions(const MergedDfaNode&, DFA&) const;
 
-    void addDeadState(std::vector<DFANodeFromNFA*>&);  /* so that each state has an transition for each input */
+    void addDeadState(
+        std::vector<DFANodeFromNFA*>&,
+        std::set<char>&); /* so that each state has an transition
+                                         for each input */
     void removeDeadState();
 private:
     std::vector<int32_t> m_DFAToMergedDFA;
