@@ -5,40 +5,40 @@ namespace RE
 {
 
 // NFA
-void NFANode::addTransition(const char sym, NFANode const* to) {
+void NFAState::addTransition(const char sym, NFAState const* to) {
     m_transitions[sym].insert(to);
 }
 
-bool NFANode::hasTransition(const char sym) const {
+bool NFAState::hasTransition(const char sym) const {
     return m_transitions.find(sym) != m_transitions.end();
 }
 
 // DFA
-bool DFANode::accept(std::string_view str) const {
-    DFANode const* node = this;
+bool DFAState::accept(std::string_view str) const {
+    DFAState const* state = this;
     for (const auto c : str) {
-        if (not node->hasTransition(c)) {
+        if (not state->hasTransition(c)) {
             return false;
         }
         else {
-            node = node->m_transitions.at(c);
+            state = state->m_transitions.at(c);
         }
     }
-    return node->m_isFinal;
+    return state->m_isFinal;
 }
 
-void DFANode::addTransition(const char sym, DFANode const* to) {
+void DFAState::addTransition(const char sym, DFAState const* to) {
     assert(sym != EPS);
     assert(m_transitions.find(sym) == m_transitions.end());
     m_transitions[sym] = to;
 }
 
-bool DFANode::hasTransition(const char sym) const {
+bool DFAState::hasTransition(const char sym) const {
     return m_transitions.find(sym) != m_transitions.end();
 }
 
-bool DFANodeFromNFA::hasState(NFANode const* nfaNode) const {
-    return m_NFANodeSet.find(nfaNode) != m_NFANodeSet.end();
+bool DFAStateFromNFA::hasState(NFAState const* nfaState) const {
+    return m_NFAStateSet.find(nfaState) != m_NFAStateSet.end();
 }
 
 } // namespace RE

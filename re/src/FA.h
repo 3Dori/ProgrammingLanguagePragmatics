@@ -11,68 +11,68 @@
 namespace RE {
 
 // TODO rename to states?
-class NFANode {
+class NFAState {
     friend class REParser;
-    friend class NodeManager;
-    friend class DFANodeFromNFA;
+    friend class StateManager;
+    friend class DFAStateFromNFA;
 
 public:
-    NFANode(const size_t id, const bool isFinal) :
+    NFAState(const size_t id, const bool isFinal) :
         m_id(id), m_isFinal(isFinal)
     {}
 
 private:
-    NFANode(const NFANode&) = delete;
-    NFANode& operator=(const NFANode&) = delete;
+    NFAState(const NFAState&) = delete;
+    NFAState& operator=(const NFAState&) = delete;
 
-    void addTransition(const char, NFANode const*);
+    void addTransition(const char, NFAState const*);
     bool hasTransition(const char) const;
 
     const size_t m_id;
     bool m_isFinal;
-    std::map<char, NFANodeSet> m_transitions;
+    std::map<char, NFAStateSet> m_transitions;
 };
 
-class DFANode {
+class DFAState {
     friend class DFAMinimizer;
 
 public:
-    DFANode(const size_t id, const bool isFinal = false)
+    DFAState(const size_t id, const bool isFinal = false)
         : m_id(id), m_isFinal(isFinal) {}
 
     bool accept(std::string_view) const;
 
 private:
-    DFANode(const DFANode&) = delete;
-    DFANode& operator=(const DFANode&) = delete;
+    DFAState(const DFAState&) = delete;
+    DFAState& operator=(const DFAState&) = delete;
 
 protected:
-    void addTransition(const char, DFANode const*);
+    void addTransition(const char, DFAState const*);
     bool hasTransition(const char) const;
 
 protected:
     size_t m_id;  // TODO: eliminate the need to use id
     bool m_isFinal = false;
-    std::map<char, DFANode const*> m_transitions;
+    std::map<char, DFAState const*> m_transitions;
 };
 
-class DFANodeFromNFA : public DFANode {
+class DFAStateFromNFA : public DFAState {
     friend class REParser;
-    friend class NodeManager;
-    friend class NFANode;
+    friend class StateManager;
+    friend class NFAState;
     friend class DFAMinimizer;
 
 public:
-    DFANodeFromNFA(const size_t id, const bool isFinal = false)
-        : DFANode(id, isFinal) {}
-    DFANodeFromNFA(const size_t id, const bool isFinal, const NFANodeSet& NFANodeSet)
-        : DFANode(id, isFinal), m_NFANodeSet(NFANodeSet) {}
+    DFAStateFromNFA(const size_t id, const bool isFinal = false)
+        : DFAState(id, isFinal) {}
+    DFAStateFromNFA(const size_t id, const bool isFinal, const NFAStateSet& nfas)
+        : DFAState(id, isFinal), m_NFAStateSet(nfas) {}
+
+   private:
+    bool hasState(NFAState const*) const;
 
 private:
-    bool hasState(NFANode const*) const;
-
-private:
-    NFANodeSet m_NFANodeSet;
+    NFAStateSet m_NFAStateSet;
 };
 
 
@@ -86,12 +86,12 @@ public:
 
 private:
     void setStart(const int32_t start) {
-        m_start = &(m_nodes.at(start));
+        m_start = &(m_states.at(start));
     }
 
 private:
-    std::map<int32_t, DFANode> m_nodes;  // actual storage
-    DFANode const* m_start;
+    std::map<int32_t, DFAState> m_states;  // actual storage
+    DFAState const* m_start;
 };
 
 } // namespace RE

@@ -1,7 +1,7 @@
 #include "FA.h"
 #include "REDef.h"
 #include "REParsingStack.h"
-#include "NodeManager.h"
+#include "StateManager.h"
 #include "DFAMinimizer.h"
 
 #include <REExceptions.h>
@@ -16,11 +16,11 @@
 namespace RE {
 
 REParser::REParser(std::string_view re) :
-    m_nodeManager(new NodeManager())
+    m_stateManager(new StateManager())
 {
-    NFANode* nfa = m_nodeManager->NFAFromRe(re);
-    DFANodeFromNFA* dfa = m_nodeManager->DFAFromNFA(nfa);
-    m_dfa = DFAMinimizer(m_nodeManager).minimize();
+    NFAState* nfa = m_stateManager->NFAFromRe(re);
+    DFAStateFromNFA* dfa = m_stateManager->DFAFromNFA(nfa);
+    m_dfa = DFAMinimizer(m_stateManager).minimize();
 }
 
 REParser::~REParser() = default;

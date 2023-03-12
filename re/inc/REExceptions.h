@@ -67,7 +67,7 @@ public:
 class NFANumLimitExceededExpection : public REException { // not used
 public:
     explicit NFANumLimitExceededExpection() :
-        REException("The limit of number of NFA nodes is exceeded")
+        REException("The limit of number of NFA states is exceeded")
     {}
 };
 

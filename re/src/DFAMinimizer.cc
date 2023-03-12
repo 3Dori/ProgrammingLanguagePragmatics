@@ -1,5 +1,5 @@
 #include "DFAMinimizer.h"
-#include "NodeManager.h"
+#include "StateManager.h"
 
 #include <algorithm>
 
@@ -7,34 +7,34 @@ namespace RE
 {
 
 // DFAMinimizer
-DFAMinimizer::DFAMinimizer(std::unique_ptr<NodeManager>& nodeManager)
-    : m_deadStateDFA(nodeManager->m_DFAsIndexed.size())
+DFAMinimizer::DFAMinimizer(std::unique_ptr<StateManager>& stateManager)
+    : m_deadStateDFA(stateManager->m_DFAsIndexed.size())
 {
-    auto& DFAsIndexed = nodeManager->m_DFAsIndexed;
-    addDeadState(DFAsIndexed, nodeManager->m_inputSymbols);
+    auto& DFAsIndexed = stateManager->m_DFAsIndexed;
+    addDeadState(DFAsIndexed, stateManager->m_inputSymbols);
     m_DFAToMergedDFA = std::vector<int32_t>(DFAsIndexed.size(), -1);
 
     // merge all final states and non-final states
     constexpr auto NON_FINALS = 0u;
     constexpr auto FINALS = 1u;
-    makeMergedDfaNode(NON_FINALS);
-    makeMergedDfaNode(FINALS);
+    makeMergedDfaState(NON_FINALS);
+    makeMergedDfaState(FINALS);
 
-    auto& nonFinals = m_mergedDfaNodes.at(NON_FINALS);
-    auto& finals = m_mergedDfaNodes.at(FINALS);
-    for (auto const* dfaNode : DFAsIndexed) {
-        const auto id = dfaNode->m_id;
-        if (dfaNode->m_isFinal) {
-            finals.dfaNodes.insert(dfaNode);
+    auto& nonFinals = m_mergedDfaStates.at(NON_FINALS);
+    auto& finals = m_mergedDfaStates.at(FINALS);
+    for (auto const* dfaState : DFAsIndexed) {
+        const auto id = dfaState->m_id;
+        if (dfaState->m_isFinal) {
+            finals.dfaStates.insert(dfaState);
             m_DFAToMergedDFA[id] = FINALS;
         }
         else {
-            nonFinals.dfaNodes.insert(dfaNode);
+            nonFinals.dfaStates.insert(dfaState);
             m_DFAToMergedDFA[id] = NON_FINALS;
         }
     }
-    if (nonFinals.dfaNodes.empty()) {
-        m_mergedDfaNodes.erase(NON_FINALS);
+    if (nonFinals.dfaStates.empty()) {
+        m_mergedDfaStates.erase(NON_FINALS);
     }
 }
 
@@ -42,9 +42,9 @@ std::unique_ptr<DFA> DFAMinimizer::minimize() {
     bool hasAmbiguity;
     do {
         hasAmbiguity = false;
-        for (auto& [_, mergedDfaNode] : m_mergedDfaNodes) {
-            if (const char sym = searchForAmbiguousSymbol(mergedDfaNode)) {  // TODO memoize ambiguous symbol
-                splitMergedDfaNodes(mergedDfaNode, sym);
+        for (auto& [_, mergedDfaState] : m_mergedDfaStates) {
+            if (const char sym = searchForAmbiguousSymbol(mergedDfaState)) {  // TODO memoize ambiguous symbol
+                splitMergedDfaState(mergedDfaState, sym);
                 hasAmbiguity = true;
                 break;
             }
@@ -57,39 +57,39 @@ std::unique_ptr<DFA> DFAMinimizer::minimize() {
     return constructMinimizedDFA();
 }
 
-DFAMinimizer::MergedDfaNode* DFAMinimizer::makeMergedDfaNode(const bool isFinal) {
-    const auto id = m_mergedDfaNodesId;
-    m_mergedDfaNodes.try_emplace(id, id, isFinal);  // m_mergedDfaNodes[id] = MergedDfaNode(id, isFinal);
-    m_mergedDfaNodesId++;
-    return &(m_mergedDfaNodes.at(id));
+DFAMinimizer::MergedDfaState* DFAMinimizer::makeMergedDfaState(const bool isFinal) {
+    const auto id = m_mergedDfaStateId;
+    m_mergedDfaStates.try_emplace(id, id, isFinal);  // m_mergedDfaStates[id] = MergedDfaState(id, isFinal);
+    m_mergedDfaStateId++;
+    return &(m_mergedDfaStates.at(id));
 }
 
-void DFAMinimizer::splitMergedDfaNodes(const MergedDfaNode& node, const char sym) {
-    std::map<int32_t, MergedDfaNode*> newTransitions;
-    const auto id = node.id;
-    for (auto const* dfaNode : node.dfaNodes) {
-        auto const* toNode = dfaNode->m_transitions.at(sym);
-        int32_t to = m_DFAToMergedDFA[toNode->m_id];
+void DFAMinimizer::splitMergedDfaState(const MergedDfaState& state, const char sym) {
+    std::map<int32_t, MergedDfaState*> newTransitions;
+    const auto id = state.id;
+    for (auto const* dfaState : state.dfaStates) {
+        auto const* toState = dfaState->m_transitions.at(sym);
+        int32_t to = m_DFAToMergedDFA[toState->m_id];
 
         if (newTransitions.find(to) == newTransitions.end()) {
-            newTransitions[to] = makeMergedDfaNode(node.isFinal);
+            newTransitions[to] = makeMergedDfaState(state.isFinal);
         }
-        newTransitions[to]->dfaNodes.insert(dfaNode);
-        m_DFAToMergedDFA[dfaNode->m_id] = newTransitions[to]->id;
+        newTransitions[to]->dfaStates.insert(dfaState);
+        m_DFAToMergedDFA[dfaState->m_id] = newTransitions[to]->id;
     }
     
-    m_mergedDfaNodes.erase(id);
+    m_mergedDfaStates.erase(id);
 }
 
-char DFAMinimizer::searchForAmbiguousSymbol(const MergedDfaNode& mergedDfa) const {
+char DFAMinimizer::searchForAmbiguousSymbol(const MergedDfaState& mergedDfa) const {
     std::map<char, size_t> transitions;
-    for (auto const* dfa : mergedDfa.dfaNodes) {
+    for (auto const* dfa : mergedDfa.dfaStates) {
         for (auto [sym, to] : dfa->m_transitions) {
-            const auto toMergedDfaNode = m_DFAToMergedDFA[to->m_id];
+            const auto mergedDfaStateTo = m_DFAToMergedDFA[to->m_id];
             if (transitions.find(sym) == transitions.end()) {
-                transitions[sym] = toMergedDfaNode;
+                transitions[sym] = mergedDfaStateTo;
             }
-            else if (transitions.at(sym) != toMergedDfaNode) {  // has ambiguity
+            else if (transitions.at(sym) != mergedDfaStateTo) {  // has ambiguity
                 return sym;
             }
         }
@@ -99,34 +99,34 @@ char DFAMinimizer::searchForAmbiguousSymbol(const MergedDfaNode& mergedDfa) cons
 
 std::unique_ptr<DFA> DFAMinimizer::constructMinimizedDFA() const {
     auto minimizedDFA = std::make_unique<DFA>();
-    for (const auto& [id, mergedDfaNode] : m_mergedDfaNodes) {
-        minimizedDFA->m_nodes.try_emplace(id, static_cast<size_t>(id), mergedDfaNode.isFinal);
+    for (const auto& [id, mergedDfaState] : m_mergedDfaStates) {
+        minimizedDFA->m_states.try_emplace(id, static_cast<size_t>(id), mergedDfaState.isFinal);
     }
 
-    for (const auto& [_, mergedDfaNode] : m_mergedDfaNodes) {
-        mergeTransitions(mergedDfaNode, *minimizedDFA);
+    for (const auto& [_, mergedDfaState] : m_mergedDfaStates) {
+        mergeTransitions(mergedDfaState, *minimizedDFA);
     }
     const int32_t start = m_DFAToMergedDFA[0];
     minimizedDFA->setStart(start);
     return minimizedDFA;
 }
 
-void DFAMinimizer::mergeTransitions(const MergedDfaNode& from, DFA& dfa) const {
-    auto& node = dfa.m_nodes.at(from.id);
-    for (auto const* dfaNode : from.dfaNodes) {
-        for (const auto& [sym, to] : dfaNode->m_transitions) {
-            if (not node.hasTransition(sym) and to != m_deadState) {
+void DFAMinimizer::mergeTransitions(const MergedDfaState& from, DFA& dfa) const {
+    auto& state = dfa.m_states.at(from.id);
+    for (auto const* dfaState : from.dfaStates) {
+        for (const auto& [sym, to] : dfaState->m_transitions) {
+            if (not state.hasTransition(sym) and to != m_deadState) {
                 auto const mergedTo = m_DFAToMergedDFA[to->m_id];
-                node.addTransition(sym, &(dfa.m_nodes.at(mergedTo)));
+                state.addTransition(sym, &(dfa.m_states.at(mergedTo)));
             }
         }
     }
 }
 
-void DFAMinimizer::addDeadState(std::vector<DFANodeFromNFA*>& dfaNodes,
+void DFAMinimizer::addDeadState(std::vector<DFAStateFromNFA*>& dfaStates,
                                 std::set<char>& inputSymbols) {
-    const auto anyDfaHasNoTransition = [&dfaNodes](const char sym) {
-        for (auto const* dfa : dfaNodes) {
+    const auto anyDfaHasNoTransition = [&dfaStates](const char sym) {
+        for (auto const* dfa : dfaStates) {
             if (not dfa->hasTransition(sym)) {
                 return true;
             }
@@ -145,8 +145,8 @@ void DFAMinimizer::addDeadState(std::vector<DFANodeFromNFA*>& dfaNodes,
     }
 
     m_deadState = &m_deadStateDFA;
-    dfaNodes.push_back(m_deadState);
-    for (auto* dfa : dfaNodes) {
+    dfaStates.push_back(m_deadState);
+    for (auto* dfa : dfaStates) {
         for (auto const sym : inputSymbols) {
             if (not dfa->hasTransition(sym)) {
                 dfa->addTransition(sym, m_deadState);
@@ -157,8 +157,8 @@ void DFAMinimizer::addDeadState(std::vector<DFANodeFromNFA*>& dfaNodes,
 
 void DFAMinimizer::removeDeadState() {
     const auto deadState = m_DFAToMergedDFA.back();
-    assert(m_mergedDfaNodes.at(deadState).dfaNodes.size() == 1);
-    m_mergedDfaNodes.erase(deadState);
+    assert(m_mergedDfaStates.at(deadState).dfaStates.size() == 1);
+    m_mergedDfaStates.erase(deadState);
 }
 
 } // namespace RE

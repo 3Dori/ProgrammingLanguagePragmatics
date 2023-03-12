@@ -5,10 +5,8 @@
 namespace RE
 {
 
-class NFANode;
 class DFA;
-class DFANodeFromNFA;
-class NodeManager;
+class StateManager;
 
 class REParser {
 public:
@@ -19,7 +17,7 @@ public:
     int32_t find(std::string_view) const;
 
 private:
-    std::unique_ptr<NodeManager> m_nodeManager;
+    std::unique_ptr<StateManager> m_stateManager;
     std::unique_ptr<DFA> m_dfa;
 };
 

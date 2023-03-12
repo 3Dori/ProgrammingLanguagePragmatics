@@ -1,5 +1,5 @@
 #include "REDef.h"
-#include "NodeManager.h"
+#include "StateManager.h"
 #include "REParsingStack.h"
 #include <REExceptions.h>
 
@@ -10,7 +10,7 @@ namespace RE
 
 // NFA
 
-NFANode* NodeManager::NFAFromRe(std::string_view re) {
+NFAState* StateManager::NFAFromRe(std::string_view re) {
     REParsingStack stack;
     bool isLastStateRepetition = false;
     for (auto pos = 0u; pos < re.size(); ++pos) {
@@ -123,10 +123,10 @@ NFANode* NodeManager::NFAFromRe(std::string_view re) {
         }
     }
     NFA nfa = parseLastGroup(stack, 0, GroupStartType::re_start);
-    return nfa.startNode ? nfa.startNode : makeNFANode(true);
+    return nfa.startState ? nfa.startState : makeNFAState(true);
 }
 
-NodeManager::NFA NodeManager::parseLastGroup(REParsingStack& stack, const size_t pos, const GroupStartType type) {
+StateManager::NFA StateManager::parseLastGroup(REParsingStack& stack, const size_t pos, const GroupStartType type) {
     while (true) {
         const auto lastGroupStartType = stack.getLastGroupStart().type;
         const auto lastGroupStartPosInRe = stack.getLastGroupStart().posInRe;
@@ -158,7 +158,75 @@ NodeManager::NFA NodeManager::parseLastGroup(REParsingStack& stack, const size_t
     }
 }
 
-NodeManager::NFA NodeManager::checkRepetitionAndPopLastNfa(
+StateManager::NFA StateManager::concatenateNFAs(std::vector<NFA>& nfas)
+{
+    // TODO investigate it
+    // NFA emptyNfa;
+    // NFA nfa = std::accumulate(nfas.begin(), nfas.end(), emptyNfa,
+                            //   std::bind(&StateManager::makeConcatenation, this, _1, _2));
+                            //   [this](NFA& a, NFA& b) {
+                            //       return makeConcatenation(a, b);
+                            //   });
+    NFA resultNfa;
+    for (auto& nfa : nfas) {
+        resultNfa = makeConcatenation(resultNfa, nfa);
+    }
+    return { resultNfa.startState, resultNfa.endState };
+}
+
+NFAState* StateManager::makeNFAState(const bool isFinal) {
+    m_NFAs.emplace_back(m_NFAs.size(), isFinal);
+    assert(m_NFAs.back().m_id == m_NFAs.size() - 1 and "Wrong NFAState id");
+    return &(m_NFAs.back());
+}
+
+StateManager::NFA StateManager::makeSymbol(const char sym) {
+    auto startState = makeNFAState();
+    auto endState = makeNFAState(true);
+    startState->addTransition(sym, endState);
+    m_inputSymbols.insert(sym);
+    return { startState, endState };
+}
+
+StateManager::NFA StateManager::makeConcatenation(NFA& a, NFA& b) {
+    if (a.isEmpty()) {
+        return b;
+    }
+    if (b.isEmpty()) {
+        return a;
+    }
+    a.endState->m_isFinal = false;
+    a.endState->addTransition(EPS, b.startState);
+    return { a.startState, b.endState };
+}
+
+StateManager::NFA StateManager::makeAlternation(NFA& a, NFA& b) {
+    if (a.isEmpty() and b.isEmpty()) {
+        return a;
+    }
+    else if (a.isEmpty()) {
+        return makeQuestion(b);
+    }
+    else if (b.isEmpty()) {
+        return makeQuestion(a);
+    }
+
+    auto startState = makeNFAState();
+    auto endState = makeNFAState(true);
+
+    a.endState->m_isFinal = false;
+    b.endState->m_isFinal = false;
+
+    startState->addTransition(EPS, a.startState);
+    startState->addTransition(EPS, b.startState);
+
+    a.endState->addTransition(EPS, endState);
+    b.endState->addTransition(EPS, endState);
+
+    return {startState, endState};
+}
+
+StateManager::NFA StateManager::checkRepetitionAndPopLastNfa(
     REParsingStack& stack, const size_t pos, const bool isLastStateRepetition) {
     if (stack.getLastGroupStart().posInRe == pos - 1) {
         throw NothingToRepeatException(pos);
@@ -170,105 +238,37 @@ NodeManager::NFA NodeManager::checkRepetitionAndPopLastNfa(
     return lastNfa;
 }
 
-NodeManager::NFA NodeManager::concatenateNFAs(std::vector<NFA>& nfas)
-{
-    // TODO investigate it
-    // NFA emptyNfa;
-    // NFA nfa = std::accumulate(nfas.begin(), nfas.end(), emptyNfa,
-                            //   std::bind(&NodeManager::makeConcatenation, this, _1, _2));
-                            //   [this](NFA& a, NFA& b) {
-                            //       return makeConcatenation(a, b);
-                            //   });
-    NFA resultNfa;
-    for (auto& nfa : nfas) {
-        resultNfa = makeConcatenation(resultNfa, nfa);
-    }
-    return { resultNfa.startNode, resultNfa.endNode, NFA::Type::concatenation };
+StateManager::NFA StateManager::makeKleeneClousure(NFA& nfa) {
+    nfa.startState->addTransition(EPS, nfa.endState);
+    nfa.endState->addTransition(EPS, nfa.startState);
+    return { nfa.startState, nfa.endState };
 }
 
-NFANode* NodeManager::makeNFANode(const bool isFinal) {
-    m_NFAs.emplace_back(m_NFAs.size(), isFinal);
-    assert(m_NFAs.back().m_id == m_NFAs.size() - 1 and "Wrong NFANode id");
-    return &(m_NFAs.back());
+StateManager::NFA StateManager::makePlus(NFA& nfa) {
+    nfa.endState->addTransition(EPS, nfa.startState);
+    return { nfa.startState, nfa.endState };
 }
 
-NodeManager::NFA NodeManager::makeSymbol(const char sym) {
-    auto startNode = makeNFANode();
-    auto endNode = makeNFANode(true);
-    startNode->addTransition(sym, endNode);
-    m_inputSymbols.insert(sym);
-    return { startNode, endNode, NFA::Type::symbol };
+StateManager::NFA StateManager::makeQuestion(NFA& nfa) {
+    nfa.startState->addTransition(EPS, nfa.endState);
+    return { nfa.startState, nfa.endState };
 }
 
-NodeManager::NFA NodeManager::makeConcatenation(NFA& a, NFA& b) {
-    if (a.isEmpty()) {
-        return b;
-    }
-    if (b.isEmpty()) {
-        return a;
-    }
-    a.endNode->m_isFinal = false;
-    a.endNode->addTransition(EPS, b.startNode);
-    return { a.startNode, b.endNode, NFA::Type::concatenation };
-}
-
-NodeManager::NFA NodeManager::makeAlternation(NFA& a, NFA& b) {
-    if (a.isEmpty() and b.isEmpty()) {
-        return a;
-    }
-    else if (a.isEmpty()) {
-        return makeQuestion(b);
-    }
-    else if (b.isEmpty()) {
-        return makeQuestion(a);
-    }
-
-    auto startNode = makeNFANode();
-    auto endNode = makeNFANode(true);
-
-    a.endNode->m_isFinal = false;
-    b.endNode->m_isFinal = false;
-
-    startNode->addTransition(EPS, a.startNode);
-    startNode->addTransition(EPS, b.startNode);
-
-    a.endNode->addTransition(EPS, endNode);
-    b.endNode->addTransition(EPS, endNode);
-
-    return { startNode, endNode, NFA::Type::alternation };
-}
-
-NodeManager::NFA NodeManager::makeKleeneClousure(NFA& nfa) {
-    nfa.startNode->addTransition(EPS, nfa.endNode);
-    nfa.endNode->addTransition(EPS, nfa.startNode);
-    return { nfa.startNode, nfa.endNode, NFA::Type::repeat };
-}
-
-NodeManager::NFA NodeManager::makePlus(NFA& nfa) {
-    nfa.endNode->addTransition(EPS, nfa.startNode);
-    return { nfa.startNode, nfa.endNode, NFA::Type::repeat };
-}
-
-NodeManager::NFA NodeManager::makeQuestion(NFA& nfa) {
-    nfa.startNode->addTransition(EPS, nfa.endNode);
-    return { nfa.startNode, nfa.endNode, NFA::Type::repeat };
-}
-
-NodeManager::NFA NodeManager::makeCopy(const NFA& nfa) {
+StateManager::NFA StateManager::makeCopy(const NFA& nfa) {
     if (nfa.isEmpty()) {
         return nfa;
     }
-    std::map<NFANode const*, NFANode*> copied;
-    copied[nfa.startNode] = makeNFANode();  // TODO check valid /(|){1}/
-    copyTransitions(nfa.startNode, copied);
-    return { copied.at(nfa.startNode), copied.at(nfa.endNode), nfa.type };
+    std::map<NFAState const*, NFAState*> copied;
+    copied[nfa.startState] = makeNFAState();
+    copyTransitions(nfa.startState, copied);
+    return { copied.at(nfa.startState), copied.at(nfa.endState) };
 }
 
-void NodeManager::copyTransitions(NFANode const* copyFrom, std::map<NFANode const*, NFANode*>& copied) {
+void StateManager::copyTransitions(NFAState const* copyFrom, std::map<NFAState const*, NFAState*>& copied) {
     for (const auto& [sym, tos] : copyFrom->m_transitions) {
         for (auto const* to : tos) {
             if (copied.find(to) == copied.end()) {
-                copied[to] = makeNFANode(to->m_isFinal);
+                copied[to] = makeNFAState(to->m_isFinal);
                 copyTransitions(to, copied);
             }
             copied.at(copyFrom)->addTransition(sym, copied.at(to));
@@ -278,14 +278,14 @@ void NodeManager::copyTransitions(NFANode const* copyFrom, std::map<NFANode cons
 
 // DFA
 
-DFANodeFromNFA* NodeManager::DFAFromNFA(NFANode const* nfa) {
+DFAStateFromNFA* StateManager::DFAFromNFA(NFAState const* nfa) {
     const auto dfaInfo = mergeEPSTransitions(nfa);
-    DFANodeFromNFA* dfa = getDFANode(dfaInfo);
+    DFAStateFromNFA* dfa = getDFAState(dfaInfo);
     generateDFATransitions(dfa);
     return dfa;
 }
 
-DFANodeFromNFA* NodeManager::getDFANode(const DFAInfo& dfaInfo) {
+DFAStateFromNFA* StateManager::getDFAState(const DFAInfo& dfaInfo) {
     const auto nfasInvolved = dfaInfo.nfasInvolved;
     if (m_DFAs.find(dfaInfo.nfasInvolved) == m_DFAs.end()) {
         const auto& [keyValue, _] = m_DFAs.try_emplace(dfaInfo.nfasInvolved, m_DFAs.size(), dfaInfo.isFinal, dfaInfo.nfasInvolved);
@@ -294,46 +294,46 @@ DFANodeFromNFA* NodeManager::getDFANode(const DFAInfo& dfaInfo) {
     return &(m_DFAs.at(nfasInvolved));
 }
 
-void NodeManager::generateDFATransitions(DFANodeFromNFA* dfaNode) {
+void StateManager::generateDFATransitions(DFAStateFromNFA* dfaState) {
     for (const auto sym : m_inputSymbols) {
         assert(sym != EPS);
-        if (dfaNode->hasTransition(sym)) {
+        if (dfaState->hasTransition(sym)) {
             continue;
         }
-        const auto dfaInfo = mergeTransitions(dfaNode, sym);
-        DFANodeFromNFA* to = getDFANode(dfaInfo);
-        dfaNode->addTransition(sym, to);
+        const auto dfaInfo = mergeTransitions(dfaState, sym);
+        DFAStateFromNFA* to = getDFAState(dfaInfo);
+        dfaState->addTransition(sym, to);
         generateDFATransitions(to);
     }
 }
 
-NodeManager::DFAInfo NodeManager::mergeEPSTransitions(NFANode const* nfaNode) {
+StateManager::DFAInfo StateManager::mergeEPSTransitions(NFAState const* nfaState) {
     DFAInfo dfaInfo;
-    mergeEPSTransitions(nfaNode, dfaInfo);
+    mergeEPSTransitions(nfaState, dfaInfo);
     return dfaInfo;
 }
 
-void NodeManager::mergeEPSTransitions(NFANode const* nfaNode, DFAInfo& dfaInfo) {
-    if (dfaInfo.containsNfaNode(nfaNode)) {
+void StateManager::mergeEPSTransitions(NFAState const* nfaState, DFAInfo& dfaInfo) {
+    if (dfaInfo.containsNfaState(nfaState)) {
         return;
     }
-    dfaInfo.addNfaNode(nfaNode);
-    if (nfaNode->m_isFinal) {
+    dfaInfo.addNfaState(nfaState);
+    if (nfaState->m_isFinal) {
         dfaInfo.isFinal = true;
     }
-    if (not nfaNode->hasTransition(EPS)) {
+    if (not nfaState->hasTransition(EPS)) {
         return;
     }
-    for (auto const* to : nfaNode->m_transitions.at(EPS)) {
+    for (auto const* to : nfaState->m_transitions.at(EPS)) {
         mergeEPSTransitions(to, dfaInfo);
     }
 }
 
-NodeManager::DFAInfo NodeManager::mergeTransitions(DFANodeFromNFA const* dfaNode, const char sym) {
+StateManager::DFAInfo StateManager::mergeTransitions(DFAStateFromNFA const* dfaState, const char sym) {
     DFAInfo dfaInfo;
-    for (auto const* nfaNode : dfaNode->m_NFANodeSet) {
-        if (nfaNode->hasTransition(sym)) {
-            for (auto const* to : nfaNode->m_transitions.at(sym)) {
+    for (auto const* nfaState : dfaState->m_NFAStateSet) {
+        if (nfaState->hasTransition(sym)) {
+            for (auto const* to : nfaState->m_transitions.at(sym)) {
                 mergeEPSTransitions(to, dfaInfo);
             }
         }
