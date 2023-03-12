@@ -101,6 +101,7 @@ TEST(RETest, KleeneStarExceptions) {
     EXPECT_THROW(RE::REParser parser("**"), RE::NothingToRepeatException);
     // TODO more cases
     EXPECT_THROW(RE::REParser parser("(*)"), RE::NothingToRepeatException);
+    EXPECT_THROW(RE::REParser parser("|*"), RE::NothingToRepeatException);
 }
 
 class RETestParameterizedParser : public TestWithParam<const char*> {
@@ -153,6 +154,7 @@ TEST(RETest, PlusExceptions) {
     EXPECT_THROW(RE::REParser parser("++"), RE::NothingToRepeatException);
     // TODO more cases
     EXPECT_THROW(RE::REParser parser("(+)"), RE::NothingToRepeatException);
+    EXPECT_THROW(RE::REParser parser("|+"), RE::NothingToRepeatException);
 }
 
 TEST_P(RETestPlus, CanParseAndMatchExactPlus_1) {
@@ -195,6 +197,7 @@ TEST(RETest, QuestionExceptions) {
     EXPECT_THROW(RE::REParser parser("??"), RE::NothingToRepeatException);
     // TODO more cases
     EXPECT_THROW(RE::REParser parser("(?)"), RE::NothingToRepeatException);
+    EXPECT_THROW(RE::REParser parser("|?"), RE::NothingToRepeatException);
 }
 
 TEST_P(RETestQuestion, CanParseAndMatchExactQuestion_1) {
@@ -220,6 +223,69 @@ TEST(RETest, CanParseAndMatchExactQuestion_2) {
     EXPECT_FALSE(parser.matchExact("1aab"));
     EXPECT_FALSE(parser.matchExact("1abbbb"));
     EXPECT_FALSE(parser.matchExact("1c"));
+}
+
+TEST(RETest, BracesExceptions) {
+    EXPECT_THROW(RE::REParser parser("a{"), RE::MissingBraceException);
+    EXPECT_THROW(RE::REParser parser("a{1"), RE::MissingBraceException);
+    EXPECT_THROW(RE::REParser parser("a{0x20}"), RE::NondigitInBracesException);
+    EXPECT_THROW(RE::REParser parser("a{abc}"), RE::NondigitInBracesException);
+    EXPECT_THROW(RE::REParser parser("a{}"), RE::EmptyBracesException);
+    EXPECT_THROW(RE::REParser parser("a{40000}"), RE::TooLargeRepetitionNumberException);
+    // TODO more cases
+    EXPECT_THROW(RE::REParser parser("{10}"), RE::NothingToRepeatException);
+    EXPECT_THROW(RE::REParser parser("({10})"), RE::NothingToRepeatException);
+    EXPECT_THROW(RE::REParser parser("|{10}"), RE::NothingToRepeatException);
+
+    EXPECT_THROW(RE::REParser parser("a?{10}"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a+{10}"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a*{10}"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a{1}{1}"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a{0}{1}"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a{1}{0}"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a{2}{2}"), RE::MultipleRepeatException);
+}
+
+TEST(RETest, CanParseAndMatchBraces_1) {
+    EXPECT_TRUE(RE::REParser("a{0}").matchExact(""));
+    EXPECT_FALSE(RE::REParser("a{0}").matchExact("a"));
+    
+    EXPECT_TRUE(RE::REParser("a{1}").matchExact("a"));
+    EXPECT_FALSE(RE::REParser("a{1}").matchExact(""));
+    EXPECT_FALSE(RE::REParser("a{1}").matchExact("aa"));
+    
+    EXPECT_TRUE(RE::REParser("a{3}").matchExact("aaa"));
+    EXPECT_FALSE(RE::REParser("a{3}").matchExact(""));
+    EXPECT_FALSE(RE::REParser("a{3}").matchExact("a"));
+    EXPECT_FALSE(RE::REParser("a{3}").matchExact("aa"));
+
+    EXPECT_TRUE(RE::REParser("a{30}").matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 30
+    EXPECT_FALSE(RE::REParser("a{30}").matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 29
+    EXPECT_FALSE(RE::REParser("a{30}").matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 31
+    
+    EXPECT_TRUE(RE::REParser("(|){1}").matchExact(""));
+    EXPECT_FALSE(RE::REParser("(|){1}").matchExact("a"));
+}
+
+TEST(RETest, CanParseAndMatchBraces_2) {
+    RE::REParser parser("(ab){2}");
+
+    EXPECT_TRUE(parser.matchExact("abab"));
+
+    EXPECT_FALSE(parser.matchExact("ab"));
+    EXPECT_FALSE(parser.matchExact("aba"));
+    EXPECT_FALSE(parser.matchExact("ababa"));
+    EXPECT_FALSE(parser.matchExact("ababab"));
+}
+
+TEST(RETest, CanParseAndMatchBraces_3) {
+    RE::REParser parser("abc{2}");
+
+    EXPECT_TRUE(parser.matchExact("abcc"));
+
+    EXPECT_FALSE(parser.matchExact("ab"));
+    EXPECT_FALSE(parser.matchExact("abc"));
+    EXPECT_FALSE(parser.matchExact("abccc"));
 }
 
 TEST(RETest, Repetitions_1) {
@@ -258,11 +324,20 @@ TEST(RETest, Repetitions_4) {
     RE::REParser parser("aa(a+)?aa");
     EXPECT_TRUE(parser.matchExact("aaaa"));
     EXPECT_TRUE(parser.matchExact("aaaaa"));
-    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 40
     
     EXPECT_FALSE(parser.matchExact("a"));
     EXPECT_FALSE(parser.matchExact("aa"));
     EXPECT_FALSE(parser.matchExact("aaa"));
+}
+
+TEST(RETest, Repetitions_5) {
+    RE::REParser parser("(a?){30}a{30}");
+    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 30
+    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 40
+    
+    EXPECT_FALSE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));  // a * 30  b
+    EXPECT_FALSE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 29
 }
 
 TEST(RETest, EscapeExceptions) {
@@ -273,15 +348,25 @@ TEST(RETest, EscapeExceptions) {
     EXPECT_THROW(RE::REParser(R"(a\\\a)"), RE::EscapeException);
 }
 
+class RETestEscape : public TestWithParam<char> {
+public:
+    RE::REParser getParser() {
+        return RE::REParser("\\" + getStr());
+    }
+
+    std::string getStr() {
+        return std::string(1u, GetParam());
+    }
+};
+
+TEST_P(RETestEscape, CanPArserAndMatchSingleEscapes) {
+    EXPECT_TRUE(getParser().matchExact(getStr()));
+}
+
+INSTANTIATE_TEST_CASE_P(TestEscape, RETestEscape,
+                        Values('(', ')', '{', '}', '|', '*', '+', '?', '\\'));
+
 TEST(RETest, CanParseAndMatchEscapes) {
-    EXPECT_TRUE(RE::REParser(R"(\\)").matchExact("\\"));
-    EXPECT_TRUE(RE::REParser(R"(\+)").matchExact("+"));
-    EXPECT_TRUE(RE::REParser(R"(\*)").matchExact("*"));
-    EXPECT_TRUE(RE::REParser(R"(\?)").matchExact("?"));
-    EXPECT_TRUE(RE::REParser(R"(\()").matchExact("("));
-    EXPECT_TRUE(RE::REParser(R"(\))").matchExact(")"));
-    EXPECT_TRUE(RE::REParser(R"(\|)").matchExact("|"));
-    
     EXPECT_TRUE(RE::REParser(R"(\++)").matchExact("+"));
     EXPECT_TRUE(RE::REParser(R"(a*\++)").matchExact("aa+++"));
     EXPECT_FALSE(RE::REParser(R"(a*\++)").matchExact("aa"));

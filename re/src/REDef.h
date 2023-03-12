@@ -10,6 +10,8 @@ enum ReservedSymbol {
     EPS = '\0',
     LEFT_PAREN = '(',
     RIGHT_PAREN = ')',
+    LEFT_BRACE = '{',
+    RIGHT_BRACE = '}',
     BAR = '|',
     KLEENE_STAR = '*',
     PLUS = '+',
@@ -18,5 +20,7 @@ enum ReservedSymbol {
 };
 
 using NFANodeSet = std::set<NFANode const*>;
+
+constexpr auto MAX_BRACES_REPETITION = 1024u;
 
 } // namespace RE

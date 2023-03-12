@@ -29,7 +29,7 @@ public:
             repeat,
             alternation,
             unimplemented
-        } type;
+        } type;  // remove this field
 
         bool isEmpty() const {
             return startNode == nullptr;
@@ -61,12 +61,16 @@ private:
     */
     NFA parseLastGroup(REParsingStack&, const size_t, const GroupStartType);
 
+    NFA checkRepetitionAndPopLastNfa(REParsingStack&, const size_t, const bool);
+
     NFA concatenateNFAs(std::vector<NFA>&);
 
     NFANode* makeNFANode(const bool isFinal = false);
     NFA makeSymbol(const char);
     NFA makeConcatenation(NFA&, NFA&);
     NFA makeAlternation(NFA&, NFA&);
+    NFA makeCopy(const NFA&);
+    void copyTransitions(NFANode const*, std::map<NFANode const*, NFANode*>&);
 
     NFA makeKleeneClousure(NFA&);
     NFA makePlus(NFA&);
