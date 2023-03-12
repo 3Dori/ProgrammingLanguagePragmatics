@@ -23,23 +23,26 @@ public:
     using MergedDfaNodes_it = std::list<MergedDfaNode>::iterator;
 
 public:
-    DFAMinimizer(const std::vector<DFANodeFromNFA const*>&);
+    DFAMinimizer(std::vector<DFANodeFromNFA*>&);
     std::unique_ptr<DFA> minimize();
 
 private:
     MergedDfaNode* makeMergedDfaNode(const bool);
     void splitMergedDfaNodes(const MergedDfaNode&, const char);
     char searchForAmbiguousSymbol(const MergedDfaNode&) const;
-    void removeDeadState();
     std::unique_ptr<DFA> constructMinimizedDFA() const;
     void mergeTransitions(const MergedDfaNode&, DFA&) const;
 
+    void addDeadState(std::vector<DFANodeFromNFA*>&);  /* so that each state has an transition for each input */
+    void removeDeadState();
 private:
     std::vector<int32_t> m_DFAToMergedDFA;
 
-    std::map<int32_t, MergedDfaNode> m_mergedDfaNodes;  // fixed capacity
+    std::map<int32_t, MergedDfaNode> m_mergedDfaNodes;  // std::map has fixed capacity
     int32_t m_mergedDfaNodesId = 0;
-    DFANodeFromNFA const* m_deadState;
+
+    DFANodeFromNFA m_deadStateDFA;
+    DFANodeFromNFA* m_deadState = nullptr;
 };
 
 } // namespace RE

@@ -25,9 +25,7 @@ target_link_libraries(
     GTest::gtest_main
     RE
 )
-# include-what-you-use
-find_program(iwyu_path NAMES include-what-you-use iwyu REQUIRED)
-set_property(TARGET RETest PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${iwyu_path})
+# TODO include-what-you-use
 
 include(GoogleTest)
 gtest_discover_tests(RETest)

@@ -84,9 +84,6 @@ private:
 
     DFANodeFromNFA* tryAddAndGetDFANode(DFANodeFromNFA&);
     void generateDFATransitions(DFANodeFromNFA*);
-    bool needDeadState() const;
-    DFANodeFromNFA* makeDeadState();
-    void addDeadState();  /* so that each state has an transition for each input */
 
 private:
     /**
@@ -101,8 +98,7 @@ private:
     std::list<NFANode> m_NFAs;          // unlike vector, lists are never resized
     std::map<NodeSet, DFANodeFromNFA> m_DFAs;   // unlike unordered_map, maps are never resized
 
-    std::vector<DFANodeFromNFA const*> m_DFAsIndexed;
-    std::set<char> m_inputSymbols;
+    std::vector<DFANodeFromNFA*> m_DFAsIndexed;  // TODO refactor out this, the interface to call minimize is weird
 };
 
 } // namespace RE

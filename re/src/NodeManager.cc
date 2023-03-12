@@ -202,7 +202,6 @@ NodeManager::NFA NodeManager::makeQuestion(NFA& nfa) {
 DFANodeFromNFA* NodeManager::DFAFromNFA(NFANode* nfa) {
     DFANodeFromNFA* dfa = getDFANode(nfa);
     generateDFATransitions(dfa);
-    addDeadState();
     return dfa;
 }
 
@@ -227,43 +226,10 @@ DFANodeFromNFA* NodeManager::tryAddAndGetDFANode(DFANodeFromNFA& dfaNode) {
 void NodeManager::generateDFATransitions(DFANodeFromNFA* dfaNode) {
     for (auto const* nfaNode : dfaNode->m_NFANodeSet) {
         for (const auto& [sym, tos] : nfaNode->m_transitions) {
-            if (sym != EPS and not dfaNode->hasTransition(sym)) {
-                m_inputSymbols.insert(sym);
+            if (sym != EPS and not dfaNode->hasTransition(sym)) {  // FIXME
                 DFANodeFromNFA* nextDfaNode = getDFANode(tos);
                 dfaNode->addTransition(sym, nextDfaNode);
                 generateDFATransitions(nextDfaNode);
-            }
-        }
-    }
-}
-
-bool NodeManager::needDeadState() const {
-    for (auto const* dfa : m_DFAsIndexed) {
-        for (auto const sym : m_inputSymbols) {
-            if (not dfa->hasTransition(sym)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-DFANodeFromNFA* NodeManager::makeDeadState() {
-    const auto DEAD_STATE_ID = m_NFAs.size() + 1;
-    if (DEAD_STATE_ID >= MAX_NFA_NODE_NUM) {
-        throw NFANumLimitExceededExpection();
-    }
-    DFANodeFromNFA deadState = makeDFANode();
-    deadState.m_NFANodes.set(DEAD_STATE_ID, true);
-    return tryAddAndGetDFANode(deadState);
-}
-
-void NodeManager::addDeadState() {
-    auto const* deadState = makeDeadState();
-    for (auto& [_, dfa] : m_DFAs) {
-        for (auto const sym : m_inputSymbols) {
-            if (not dfa.hasTransition(sym)) {
-                dfa.addTransition(sym, deadState);
             }
         }
     }
