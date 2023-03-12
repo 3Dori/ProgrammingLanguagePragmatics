@@ -169,7 +169,7 @@ TEST_P(RETestPlus, CanParseAndMatchExactPlus_1) {
 }
 
 INSTANTIATE_TEST_CASE_P(TestRepetition, RETestPlus,
-                        Values("a+", "(a+)+"));
+                        Values("a+", "(a+)+", "aa*"));
 
 TEST(RETest, CanParseAndMatchExactPlus_2) {
     RE::REParser parser("a+b+1");
@@ -211,7 +211,7 @@ TEST_P(RETestQuestion, CanParseAndMatchExactQuestion_1) {
 }
 
 INSTANTIATE_TEST_CASE_P(TestRepetition, RETestQuestion,
-                        Values("a?", "(a?)?"));
+                        Values("a?", "(a?)?", "|a"));
 
 TEST(RETest, CanParseAndMatchExactQuestion_2) {
     RE::REParser parser("1a?b?");
@@ -226,6 +226,7 @@ TEST(RETest, CanParseAndMatchExactQuestion_2) {
 }
 
 TEST(RETest, BracesExceptions) {
+    EXPECT_THROW(RE::REParser parser("a}"), RE::UnbalancedBraceException);
     EXPECT_THROW(RE::REParser parser("a{"), RE::MissingBraceException);
     EXPECT_THROW(RE::REParser parser("a{1"), RE::MissingBraceException);
     EXPECT_THROW(RE::REParser parser("a{0x20}"), RE::NondigitInBracesException);
@@ -237,6 +238,9 @@ TEST(RETest, BracesExceptions) {
     EXPECT_THROW(RE::REParser parser("({10})"), RE::NothingToRepeatException);
     EXPECT_THROW(RE::REParser parser("|{10}"), RE::NothingToRepeatException);
 
+    EXPECT_THROW(RE::REParser parser("a{10}*"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a{10}+"), RE::MultipleRepeatException);
+    EXPECT_THROW(RE::REParser parser("a{10}?"), RE::MultipleRepeatException);
     EXPECT_THROW(RE::REParser parser("a?{10}"), RE::MultipleRepeatException);
     EXPECT_THROW(RE::REParser parser("a+{10}"), RE::MultipleRepeatException);
     EXPECT_THROW(RE::REParser parser("a*{10}"), RE::MultipleRepeatException);

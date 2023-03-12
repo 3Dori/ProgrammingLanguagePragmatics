@@ -38,7 +38,7 @@ private:
     void addDeadState(
         std::vector<DFANodeFromNFA*>&,
         std::set<char>&); /* so that each state has an transition
-                                         for each input */
+                             for each input */
     void removeDeadState();
 private:
     std::vector<int32_t> m_DFAToMergedDFA;
