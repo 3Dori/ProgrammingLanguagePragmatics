@@ -73,23 +73,29 @@ private:
     NFA makeQuestion(NFA&);
 
     // DFA
-    DFANodeFromNFA* DFAFromNFA(NFANode*);
-    
-    // static NodeSet mergeEPSTransition(NFANode*);
-    // static NodeSet mergeEPSTransition(NFANode*, NodeSet&);
+    DFANodeFromNFA* DFAFromNFA(NFANode const*);
 
-    inline DFANodeFromNFA makeDFANode() {
-        return DFANodeFromNFA(m_DFAs.size());
-    }
-    DFANodeFromNFA* getDFANode(const NFANodeSet&);
-    inline DFANodeFromNFA* getDFANode(NFANode const* nfaNode) {
-        return getDFANode(NFANodeSet{nfaNode});
-    }
+    struct DFAInfo {
+        NFANodeSet nfasInvolved;
+        bool isFinal = false;
 
-    DFANodeFromNFA* tryAddAndGetDFANode(DFANodeFromNFA&);
+        inline bool containsNfaNode(NFANode const* nfaNode) const {
+            return nfasInvolved.find(nfaNode) != nfasInvolved.end();
+        }
+
+        inline void addNfaNode(NFANode const* nfaNode) {
+            nfasInvolved.insert(nfaNode);
+        }
+    };
+
+    DFANodeFromNFA* getDFANode(const DFAInfo&);
     void generateDFATransitions(DFANodeFromNFA*);
+    static DFAInfo mergeEPSTransitions(NFANode const*);
+    static void mergeEPSTransitions(NFANode const*, DFAInfo&);
+    static DFAInfo mergeTransitions(DFANodeFromNFA const*, const char);
 
 private:
+    std::set<char> m_inputSymbols;
     /**
      * Use STL containers to automatically manage resourses
      * and remove the need to use smart pointers, which could

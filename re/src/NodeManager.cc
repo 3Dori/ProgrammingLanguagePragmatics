@@ -138,6 +138,7 @@ NodeManager::NFA NodeManager::makeSymbol(const char sym) {
     auto startNode = makeNFANode();
     auto endNode = makeNFANode(true);
     startNode->addTransition(sym, endNode);
+    m_inputSymbols.insert(sym);
     return {startNode, endNode, NFA::Type::symbol};
 }
 
@@ -196,50 +197,68 @@ NodeManager::NFA NodeManager::makeQuestion(NFA& nfa) {
 }
 
 // DFA
-DFANodeFromNFA* NodeManager::DFAFromNFA(NFANode* nfa) {
-    DFANodeFromNFA* dfa = getDFANode(nfa);
+
+DFANodeFromNFA* NodeManager::DFAFromNFA(NFANode const* nfa) {
+    const auto dfaInfo = mergeEPSTransitions(nfa);
+    DFANodeFromNFA* dfa = getDFANode(dfaInfo);
     generateDFATransitions(dfa);
     return dfa;
 }
 
-// NodeSet NodeManager::mergeEPSTransition(NFANode* nfaNode) {
-//     NodeSet nfasInvolved;
-//     mergeEPSTransition(nfaNode);
-//     return nfasInvolved;
-// }
-
-// NodeSet NodeManager::mergeEPSTransition(NFANode* nfaNode, NodeSet& nfasInvolved) {
-    
-// }
-
-DFANodeFromNFA* NodeManager::getDFANode(const NFANodeSet& nfaNodes) {
-    DFANodeFromNFA dfaNode = makeDFANode();
-    for (auto const* nfaNode : nfaNodes) {
-        dfaNode.mergeEPSTransition(nfaNode);
-    }
-
-    return tryAddAndGetDFANode(dfaNode);
-}
-
-DFANodeFromNFA* NodeManager::tryAddAndGetDFANode(DFANodeFromNFA& dfaNode) {
-    const auto NFANodesInvolved = dfaNode.m_NFANodeSet;  // TODO non-move
-    if (m_DFAs.find(NFANodesInvolved) == m_DFAs.end()) {
-        const auto [keyValue, _] = m_DFAs.try_emplace(NFANodesInvolved, std::move(dfaNode));
+DFANodeFromNFA* NodeManager::getDFANode(const DFAInfo& dfaInfo) {
+    const auto nfasInvolved = dfaInfo.nfasInvolved;
+    if (m_DFAs.find(dfaInfo.nfasInvolved) == m_DFAs.end()) {
+        const auto& [keyValue, _] = m_DFAs.try_emplace(dfaInfo.nfasInvolved, m_DFAs.size(), dfaInfo.isFinal, dfaInfo.nfasInvolved);
         m_DFAsIndexed.push_back(&(keyValue->second));
     }
-    return &(m_DFAs.at(NFANodesInvolved));
+    return &(m_DFAs.at(nfasInvolved));
 }
 
 void NodeManager::generateDFATransitions(DFANodeFromNFA* dfaNode) {
+    for (const auto sym : m_inputSymbols) {
+        assert(sym != EPS);
+        if (dfaNode->hasTransition(sym)) {
+            continue;
+        }
+        const auto dfaInfo = mergeTransitions(dfaNode, sym);
+        DFANodeFromNFA* to = getDFANode(dfaInfo);
+        dfaNode->addTransition(sym, to);
+        generateDFATransitions(to);
+    }
+}
+
+NodeManager::DFAInfo NodeManager::mergeEPSTransitions(NFANode const* nfaNode) {
+    DFAInfo dfaInfo;
+    mergeEPSTransitions(nfaNode, dfaInfo);
+    return dfaInfo;
+}
+
+void NodeManager::mergeEPSTransitions(NFANode const* nfaNode, DFAInfo& dfaInfo) {
+    if (dfaInfo.containsNfaNode(nfaNode)) {
+        return;
+    }
+    dfaInfo.addNfaNode(nfaNode);
+    if (nfaNode->m_isFinal) {
+        dfaInfo.isFinal = true;
+    }
+    if (not nfaNode->hasTransition(EPS)) {
+        return;
+    }
+    for (auto const* to : nfaNode->m_transitions.at(EPS)) {
+        mergeEPSTransitions(to, dfaInfo);
+    }
+}
+
+NodeManager::DFAInfo NodeManager::mergeTransitions(DFANodeFromNFA const* dfaNode, const char sym) {
+    DFAInfo dfaInfo;
     for (auto const* nfaNode : dfaNode->m_NFANodeSet) {
-        for (const auto& [sym, tos] : nfaNode->m_transitions) {
-            if (sym != EPS and not dfaNode->hasTransition(sym)) {  // FIXME
-                DFANodeFromNFA* nextDfaNode = getDFANode(tos);
-                dfaNode->addTransition(sym, nextDfaNode);
-                generateDFATransitions(nextDfaNode);
+        if (nfaNode->hasTransition(sym)) {
+            for (auto const* to : nfaNode->m_transitions.at(sym)) {
+                mergeEPSTransitions(to, dfaInfo);
             }
         }
     }
+    return dfaInfo;
 }
 
 } // namespace RE

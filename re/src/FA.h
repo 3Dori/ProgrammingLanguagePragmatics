@@ -17,7 +17,7 @@ class NFANode {
     friend class DFANodeFromNFA;
 
 public:
-    explicit NFANode(const size_t id, const bool isFinal) :
+    NFANode(const size_t id, const bool isFinal) :
         m_id(id), m_isFinal(isFinal)
     {}
 
@@ -40,14 +40,11 @@ public:
     DFANode(const size_t id, const bool isFinal = false)
         : m_id(id), m_isFinal(isFinal) {}
 
-    DFANode(DFANode&&) = default;  // TODO avoid moving
-
     bool accept(std::string_view) const;
 
 private:
     DFANode(const DFANode&) = delete;
     DFANode& operator=(const DFANode&) = delete;
-    DFANode& operator=(DFANode&&) = delete;
 
 protected:
     void addTransition(const char, DFANode const*);
@@ -68,12 +65,11 @@ class DFANodeFromNFA : public DFANode {
 public:
     DFANodeFromNFA(const size_t id, const bool isFinal = false)
         : DFANode(id, isFinal) {}
-    DFANodeFromNFA(DFANodeFromNFA&&) = default;
+    DFANodeFromNFA(const size_t id, const bool isFinal, const NFANodeSet& NFANodeSet)
+        : DFANode(id, isFinal), m_NFANodeSet(NFANodeSet) {}
 
 private:
     bool hasState(NFANode const*) const;
-
-    void mergeEPSTransition(NFANode const*);
 
 private:
     NFANodeSet m_NFANodeSet;
