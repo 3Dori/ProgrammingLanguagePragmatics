@@ -3,6 +3,6 @@ add_library(
     RE
     FA.cc
     RE.cc
-    NodeManager.cc
+    StateManager.cc
     DFAMinimizer.cc
 )

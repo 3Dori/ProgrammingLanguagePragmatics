@@ -11,43 +11,42 @@
 namespace RE
 {
 
-class NodeManager;
+class StateManager;
 
 class DFAMinimizer {
 public:
-    struct MergedDfaNode {
-        MergedDfaNode(const int32_t id, const bool isFinal)
+    struct MergedDfaState {
+        MergedDfaState(const int32_t id, const bool isFinal)
             : id(id), isFinal(isFinal) {}
         int32_t id;
         bool isFinal;
-        std::set<DFANodeFromNFA const*> dfaNodes;
+        std::set<DFAStateFromNFA const*> dfaStates;
     };
-    using MergedDfaNodes_it = std::list<MergedDfaNode>::iterator;
 
 public:
-    DFAMinimizer(std::unique_ptr<NodeManager>&);
+    DFAMinimizer(std::unique_ptr<StateManager>&);
     std::unique_ptr<DFA> minimize();
 
 private:
-    MergedDfaNode* makeMergedDfaNode(const bool);
-    void splitMergedDfaNodes(const MergedDfaNode&, const char);
-    char searchForAmbiguousSymbol(const MergedDfaNode&) const;
+    MergedDfaState* makeMergedDfaState(const bool);
+    void splitMergedDfaState(const MergedDfaState&, const char);
+    char searchForAmbiguousSymbol(const MergedDfaState&) const;
     std::unique_ptr<DFA> constructMinimizedDFA() const;
-    void mergeTransitions(const MergedDfaNode&, DFA&) const;
+    void mergeTransitions(const MergedDfaState&, DFA&) const;
 
     void addDeadState(
-        std::vector<DFANodeFromNFA*>&,
+        std::vector<DFAStateFromNFA*>&,
         std::set<char>&); /* so that each state has an transition
                              for each input */
     void removeDeadState();
 private:
     std::vector<int32_t> m_DFAToMergedDFA;
 
-    std::map<int32_t, MergedDfaNode> m_mergedDfaNodes;  // std::map has fixed capacity
-    int32_t m_mergedDfaNodesId = 0;
+    std::map<int32_t, MergedDfaState> m_mergedDfaStates;  // std::map has fixed capacity
+    int32_t m_mergedDfaStateId = 0;
 
-    DFANodeFromNFA m_deadStateDFA;
-    DFANodeFromNFA* m_deadState = nullptr;
+    DFAStateFromNFA m_deadStateDFA;
+    DFAStateFromNFA* m_deadState = nullptr;
 };
 
 } // namespace RE

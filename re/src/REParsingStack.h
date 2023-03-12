@@ -2,7 +2,7 @@
 
 #include "FA.h"
 #include "REDef.h"
-#include "NodeManager.h"
+#include "StateManager.h"
 
 #include <vector>
 #include <list>
@@ -14,13 +14,13 @@ namespace RE
 {
 
 class REParsingStack {
-    using Stack_t = std::vector<NodeManager::NFA>;
+    using Stack_t = std::vector<StateManager::NFA>;
 
 public:
     struct GroupStart {
         const size_t posInStack;
         const int32_t posInRe;
-        NodeManager::GroupStartType type;
+        StateManager::GroupStartType type;
     };
 
     inline const GroupStart& getLastGroupStart() const {
@@ -31,28 +31,28 @@ public:
         return m_stack.empty();
     }
 
-    inline void push(const NodeManager::NFA& nfa) {
+    inline void push(const StateManager::NFA& nfa) {
         m_stack.push_back(nfa);
     }
 
     inline void pushOpenParen(const int32_t posInRe) {
-        m_groupStarts.push_back({m_stack.size(), posInRe, NodeManager::GroupStartType::parenthesis});
+        m_groupStarts.push_back({m_stack.size(), posInRe, StateManager::GroupStartType::parenthesis});
     }
 
     inline void pushBar(const int32_t posInRe) {
-        m_groupStarts.push_back({m_stack.size(), posInRe, NodeManager::GroupStartType::bar});
+        m_groupStarts.push_back({m_stack.size(), posInRe, StateManager::GroupStartType::bar});
     }
 
-    inline NodeManager::NFA popOne() {
+    inline StateManager::NFA popOne() {
         const auto ret = m_stack.back();
         m_stack.pop_back();
         return ret;
     }
 
-    inline Stack_t popTillLastGroupStart(const NodeManager::GroupStartType type) {
+    inline Stack_t popTillLastGroupStart(const StateManager::GroupStartType type) {
         // Pop last group start
         const auto lastGroupStartPosInStack = getLastGroupStart().posInStack;
-        if (NodeManager::hasHigherOrEqualPredecence(type, getLastGroupStart().type)) {
+        if (StateManager::hasHigherOrEqualPredecence(type, getLastGroupStart().type)) {
             m_groupStarts.pop_back();
         }
         // Pop nfas till last group start
@@ -64,7 +64,7 @@ public:
     
 private:
     Stack_t m_stack;
-    std::vector<GroupStart> m_groupStarts{{0u, -1, NodeManager::GroupStartType::re_start}};
+    std::vector<GroupStart> m_groupStarts{{0u, -1, StateManager::GroupStartType::re_start}};
 };
 
 } // namespace RE

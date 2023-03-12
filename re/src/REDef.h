@@ -4,7 +4,7 @@
 
 namespace RE {
 
-class NFANode;
+class NFAState;
 
 enum ReservedSymbol {
     EPS = '\0',
@@ -19,7 +19,7 @@ enum ReservedSymbol {
     ESCAPE = '\\',
 };
 
-using NFANodeSet = std::set<NFANode const*>;
+using NFAStateSet = std::set<NFAState const*>;
 
 constexpr auto MAX_BRACES_REPETITION = 1024u;
 
