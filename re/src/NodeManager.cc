@@ -129,9 +129,6 @@ NodeManager::NFA NodeManager::concatenateNFAs(std::vector<NFA>& nfas)
 }
 
 NFANode* NodeManager::makeNFANode(const bool isFinal) {
-    if (m_NFAs.size() >= MAX_NFA_NODE_NUM) {
-        throw NFANumLimitExceededExpection();
-    }
     m_NFAs.emplace_back(m_NFAs.size(), isFinal);
     assert(m_NFAs.back().m_id == m_NFAs.size() - 1 and "Wrong NFANode id");
     return &(m_NFAs.back());
@@ -205,7 +202,17 @@ DFANodeFromNFA* NodeManager::DFAFromNFA(NFANode* nfa) {
     return dfa;
 }
 
-DFANodeFromNFA* NodeManager::getDFANode(const std::set<NFANode const*>& nfaNodes) {
+// NodeSet NodeManager::mergeEPSTransition(NFANode* nfaNode) {
+//     NodeSet nfasInvolved;
+//     mergeEPSTransition(nfaNode);
+//     return nfasInvolved;
+// }
+
+// NodeSet NodeManager::mergeEPSTransition(NFANode* nfaNode, NodeSet& nfasInvolved) {
+    
+// }
+
+DFANodeFromNFA* NodeManager::getDFANode(const NFANodeSet& nfaNodes) {
     DFANodeFromNFA dfaNode = makeDFANode();
     for (auto const* nfaNode : nfaNodes) {
         dfaNode.mergeEPSTransition(nfaNode);
@@ -215,10 +222,10 @@ DFANodeFromNFA* NodeManager::getDFANode(const std::set<NFANode const*>& nfaNodes
 }
 
 DFANodeFromNFA* NodeManager::tryAddAndGetDFANode(DFANodeFromNFA& dfaNode) {
-    const auto NFANodesInvolved = dfaNode.m_NFANodes;
+    const auto NFANodesInvolved = dfaNode.m_NFANodeSet;  // TODO non-move
     if (m_DFAs.find(NFANodesInvolved) == m_DFAs.end()) {
-        m_DFAs.try_emplace(NFANodesInvolved, std::move(dfaNode));
-        m_DFAsIndexed.push_back(&(m_DFAs.at(NFANodesInvolved)));
+        const auto [keyValue, _] = m_DFAs.try_emplace(NFANodesInvolved, std::move(dfaNode));
+        m_DFAsIndexed.push_back(&(keyValue->second));
     }
     return &(m_DFAs.at(NFANodesInvolved));
 }

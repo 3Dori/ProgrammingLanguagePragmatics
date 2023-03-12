@@ -38,14 +38,13 @@ bool DFANode::hasTransition(const char sym) const {
 }
 
 bool DFANodeFromNFA::hasState(NFANode const* nfaNode) const {
-    return m_NFANodes[nfaNode->m_id];
+    return m_NFANodeSet.find(nfaNode) != m_NFANodeSet.end();
 }
 
 void DFANodeFromNFA::mergeEPSTransition(NFANode const* nfaNode) {
     if (nfaNode->m_isFinal) {
         m_isFinal = true;
     }
-    m_NFANodes.set(nfaNode->m_id, true);
     m_NFANodeSet.insert(nfaNode);
 
     if (not nfaNode->hasTransition(EPS)) {
@@ -53,7 +52,7 @@ void DFANodeFromNFA::mergeEPSTransition(NFANode const* nfaNode) {
     }
     for (auto const* to : nfaNode->m_transitions.at(EPS)) {
         // in a DFS manner
-        if (not m_NFANodes[to->m_id]) {
+        if (m_NFANodeSet.find(to) == m_NFANodeSet.end()) {
             mergeEPSTransition(to);
         }
     }

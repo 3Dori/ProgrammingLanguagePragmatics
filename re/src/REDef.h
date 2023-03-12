@@ -1,9 +1,10 @@
 #pragma once
 
-#include <bitset>
-
+#include <set>
 
 namespace RE {
+
+class NFANode;
 
 enum ReservedSymbol {
     EPS = '\0',
@@ -16,7 +17,6 @@ enum ReservedSymbol {
     ESCAPE = '\\',
 };
 
-constexpr size_t MAX_NFA_NODE_NUM = 1024;
-using NodeSet = std::bitset<MAX_NFA_NODE_NUM>;
+using NFANodeSet = std::set<NFANode const*>;
 
 } // namespace RE

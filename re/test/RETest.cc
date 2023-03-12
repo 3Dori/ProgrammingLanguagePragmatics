@@ -223,17 +223,6 @@ TEST(RETest, CanParseAndMatchExactQuestion_2) {
 }
 
 TEST(RETest, Repetitions_1) {
-    RE::REParser parser("aa(a+)?aa");
-    EXPECT_TRUE(parser.matchExact("aaaa"));
-    EXPECT_TRUE(parser.matchExact("aaaaa"));
-    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-    
-    EXPECT_FALSE(parser.matchExact("a"));
-    EXPECT_FALSE(parser.matchExact("aa"));
-    EXPECT_FALSE(parser.matchExact("aaa"));
-}
-
-TEST(RETest, Repetitions_5) {
     RE::REParser parser("aa*a");
     EXPECT_TRUE(parser.matchExact("aa"));
     EXPECT_TRUE(parser.matchExact("aaa"));
@@ -263,6 +252,17 @@ TEST(RETest, Repetitions_3) {
     EXPECT_FALSE(parser.matchExact("aabaaa"));
     EXPECT_FALSE(parser.matchExact("aaaabaa"));
     EXPECT_FALSE(parser.matchExact("aaaabbaaa"));
+}
+
+TEST(RETest, Repetitions_4) {
+    RE::REParser parser("aa(a+)?aa");
+    EXPECT_TRUE(parser.matchExact("aaaa"));
+    EXPECT_TRUE(parser.matchExact("aaaaa"));
+    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    
+    EXPECT_FALSE(parser.matchExact("a"));
+    EXPECT_FALSE(parser.matchExact("aa"));
+    EXPECT_FALSE(parser.matchExact("aaa"));
 }
 
 TEST(RETest, EscapeExceptions) {

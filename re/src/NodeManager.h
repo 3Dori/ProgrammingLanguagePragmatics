@@ -74,12 +74,16 @@ private:
 
     // DFA
     DFANodeFromNFA* DFAFromNFA(NFANode*);
+    
+    // static NodeSet mergeEPSTransition(NFANode*);
+    // static NodeSet mergeEPSTransition(NFANode*, NodeSet&);
+
     inline DFANodeFromNFA makeDFANode() {
         return DFANodeFromNFA(m_DFAs.size());
     }
-    DFANodeFromNFA* getDFANode(const std::set<NFANode const*>&);
+    DFANodeFromNFA* getDFANode(const NFANodeSet&);
     inline DFANodeFromNFA* getDFANode(NFANode const* nfaNode) {
-        return getDFANode(std::set<NFANode const*>{nfaNode});
+        return getDFANode(NFANodeSet{nfaNode});
     }
 
     DFANodeFromNFA* tryAddAndGetDFANode(DFANodeFromNFA&);
@@ -96,7 +100,7 @@ private:
      * are invalidated, resulting in undefined behaviors.
      */
     std::list<NFANode> m_NFAs;          // unlike vector, lists are never resized
-    std::map<NodeSet, DFANodeFromNFA> m_DFAs;   // unlike unordered_map, maps are never resized
+    std::map<NFANodeSet, DFANodeFromNFA> m_DFAs;   // unlike unordered_map, maps are never resized
 
     std::vector<DFANodeFromNFA*> m_DFAsIndexed;  // TODO refactor out this, the interface to call minimize is weird
 };
