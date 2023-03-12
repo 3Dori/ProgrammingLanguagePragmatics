@@ -259,9 +259,9 @@ TEST(RETest, CanParseAndMatchBraces_1) {
     EXPECT_FALSE(RE::REParser("a{3}").matchExact("a"));
     EXPECT_FALSE(RE::REParser("a{3}").matchExact("aa"));
 
-    EXPECT_TRUE(RE::REParser("a{30}").matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 30
-    EXPECT_FALSE(RE::REParser("a{30}").matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 29
-    EXPECT_FALSE(RE::REParser("a{30}").matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 31
+    EXPECT_TRUE(RE::REParser("a{30}").matchExact(std::string(30u, 'a')));
+    EXPECT_FALSE(RE::REParser("a{30}").matchExact(std::string(29u, 'a')));
+    EXPECT_FALSE(RE::REParser("a{30}").matchExact(std::string(31u, 'a')));
     
     EXPECT_TRUE(RE::REParser("(|){1}").matchExact(""));
     EXPECT_FALSE(RE::REParser("(|){1}").matchExact("a"));
@@ -292,8 +292,8 @@ TEST(RETest, Repetitions_1) {
     RE::REParser parser("aa*a");
     EXPECT_TRUE(parser.matchExact("aa"));
     EXPECT_TRUE(parser.matchExact("aaa"));
-    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-    
+    EXPECT_TRUE(parser.matchExact(std::string(40u, 'a')));
+
     EXPECT_FALSE(parser.matchExact("a"));
     EXPECT_FALSE(parser.matchExact(""));
 }
@@ -302,11 +302,11 @@ TEST(RETest, Repetitions_2) {
     RE::REParser parser("aa(aa)+");
     EXPECT_TRUE(parser.matchExact("aaaa"));
     EXPECT_TRUE(parser.matchExact("aaaaaa"));
-    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaa"));   // a * 18
-    
+    EXPECT_TRUE(parser.matchExact(std::string(20u, 'a')));
+
     EXPECT_FALSE(parser.matchExact("a"));
     EXPECT_FALSE(parser.matchExact("aaa"));
-    EXPECT_FALSE(parser.matchExact("aaaaaaaaaaaaaaaaaaa")); // a * 19
+    EXPECT_FALSE(parser.matchExact(std::string(21u, 'a')));
 }
 
 TEST(RETest, Repetitions_3) {
@@ -324,8 +324,8 @@ TEST(RETest, Repetitions_4) {
     RE::REParser parser("aa(a+)?aa");
     EXPECT_TRUE(parser.matchExact("aaaa"));
     EXPECT_TRUE(parser.matchExact("aaaaa"));
-    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 40
-    
+    EXPECT_TRUE(parser.matchExact(std::string(40u, 'a')));
+
     EXPECT_FALSE(parser.matchExact("a"));
     EXPECT_FALSE(parser.matchExact("aa"));
     EXPECT_FALSE(parser.matchExact("aaa"));
@@ -333,11 +333,11 @@ TEST(RETest, Repetitions_4) {
 
 TEST(RETest, Repetitions_5) {
     RE::REParser parser("(a?){30}a{30}");
-    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 30
-    EXPECT_TRUE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 40
-    
-    EXPECT_FALSE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));  // a * 30  b
-    EXPECT_FALSE(parser.matchExact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));  // a * 29
+    EXPECT_TRUE(parser.matchExact(std::string(30u, 'a')));
+    EXPECT_TRUE(parser.matchExact(std::string(60u, 'a')));
+
+    EXPECT_FALSE(parser.matchExact(std::string(30u, 'a') + "b"));
+    EXPECT_FALSE(parser.matchExact(std::string(29u, 'a')));
 }
 
 TEST(RETest, EscapeExceptions) {
