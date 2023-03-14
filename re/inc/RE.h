@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include <string_view>
 #include <memory>
@@ -9,13 +11,15 @@ class REParserImpl;
 
 class REParser {
 public:
-    REParser(std::string_view);
+    using RE_t = const std::string_view&;
+    using Str_t = const std::string_view&;
+    REParser(RE_t);
     ~REParser();
 
-    bool matchExact(std::string_view) const;
-    int32_t find(std::string_view) const;
+    bool matchExact(Str_t) const;
+    int32_t find(Str_t) const;
 
-private:
+   private:
     std::unique_ptr<REParserImpl> m_parser;
 };
 

@@ -2,21 +2,16 @@
 
 #include <RE.h>
 
-#include <string_view>
-
 namespace RE {
 
-REParser::REParser(std::string_view re) :
-    m_parser(new REParserImpl(re)) {}
+REParser::REParser(REParser::RE_t re) : m_parser(new REParserImpl(re)) {}
 
 REParser::~REParser() = default;
 
-bool REParser::matchExact(std::string_view str) const {
+bool REParser::matchExact(REParser::Str_t str) const {
     return m_parser->matchExact(str);
 }
 
-int32_t REParser::find(std::string_view str) const {
-    return -1;
-}
+int32_t REParser::find(REParser::Str_t) const { return -1; }
 
 } // namespace RE

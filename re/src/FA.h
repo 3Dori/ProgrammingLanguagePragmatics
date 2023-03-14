@@ -2,9 +2,10 @@
 
 #include "REDef.h"
 
+#include <RE.h>
+
 #include <cassert>
 #include <vector>
-#include <string_view>
 #include <set>
 #include <map>
 
@@ -33,12 +34,14 @@ private:
     std::map<char, NFAStateSet> m_transitions;
 };
 
+
 struct NFA {
     NFAState* startState = nullptr;
     NFAState* endState = nullptr;
 
     bool isEmpty() const { return startState == nullptr; }
 };
+
 
 class DFAState {
     friend class DFAMinimizer;
@@ -47,7 +50,7 @@ public:
     DFAState(const size_t id, const bool isFinal = false)
         : m_id(id), m_isFinal(isFinal) {}
 
-    bool accept(std::string_view) const;
+    bool accept(REParser::Str_t) const;
 
 private:
     DFAState(const DFAState&) = delete;
@@ -87,9 +90,7 @@ class DFA {
     friend class DFAMinimizer;
 
 public:
-    bool accept(std::string_view str) const {
-        return m_start->accept(str);
-    }
+    bool accept(REParser::Str_t str) const { return m_start->accept(str); }
 
 private:
     void setStart(const int32_t start) {

@@ -1,6 +1,8 @@
 #include "FA.h"
 #include "REDef.h"
 
+#include <RE.h>
+
 namespace RE
 {
 
@@ -14,7 +16,7 @@ bool NFAState::hasTransition(const char sym) const {
 }
 
 // DFA
-bool DFAState::accept(std::string_view str) const {
+bool DFAState::accept(REParser::Str_t str) const {
     DFAState const* state = this;
     for (const auto c : str) {
         if (not state->hasTransition(c)) {

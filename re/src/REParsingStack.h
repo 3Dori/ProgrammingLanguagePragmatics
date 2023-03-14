@@ -49,7 +49,6 @@ private:
     }
 
     NFA popOne();
-    NFA checkRepetitionAndPopLastNfa(const size_t, const bool);
     Stack_t popTillLastGroupStart(const GroupStartType);
 
 private:

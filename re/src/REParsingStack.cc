@@ -26,14 +26,4 @@ REParsingStack::Stack_t REParsingStack::popTillLastGroupStart(
     return ret;
 }
 
-NFA REParsingStack::checkRepetitionAndPopLastNfa(const size_t pos, const bool isLastStateRepetition) {
-    if (getLastGroupStart().posInRe == pos - 1) {
-        throw NothingToRepeatException(pos);
-    }
-    if (isLastStateRepetition) {
-        throw MultipleRepeatException(pos);
-    }
-    return popOne();
-}
-
 } // namespace RE
