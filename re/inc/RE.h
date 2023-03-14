@@ -5,8 +5,7 @@
 namespace RE
 {
 
-class DFA;
-class StateManager;
+class REParserImpl;
 
 class REParser {
 public:
@@ -17,8 +16,7 @@ public:
     int32_t find(std::string_view) const;
 
 private:
-    std::unique_ptr<StateManager> m_stateManager;
-    std::unique_ptr<DFA> m_dfa;
+    std::unique_ptr<REParserImpl> m_parser;
 };
 
 } // namespace RE

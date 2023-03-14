@@ -7,11 +7,11 @@ namespace RE
 {
 
 // DFAMinimizer
-DFAMinimizer::DFAMinimizer(std::unique_ptr<StateManager>& stateManager)
-    : m_deadStateDFA(stateManager->m_DFAsIndexed.size())
+DFAMinimizer::DFAMinimizer(StateManager& stateManager)
+    : m_deadStateDFA(stateManager.m_DFAsIndexed.size())
 {
-    auto& DFAsIndexed = stateManager->m_DFAsIndexed;
-    addDeadState(DFAsIndexed, stateManager->m_inputSymbols);
+    auto& DFAsIndexed = stateManager.m_DFAsIndexed;
+    addDeadState(DFAsIndexed, stateManager.m_inputSymbols);
     m_DFAToMergedDFA = std::vector<int32_t>(DFAsIndexed.size(), -1);
 
     // merge all final states and non-final states
@@ -38,7 +38,7 @@ DFAMinimizer::DFAMinimizer(std::unique_ptr<StateManager>& stateManager)
     }
 }
 
-std::unique_ptr<DFA> DFAMinimizer::minimize() {
+DFA DFAMinimizer::minimize() {
     bool hasAmbiguity;
     do {
         hasAmbiguity = false;
@@ -97,17 +97,17 @@ char DFAMinimizer::searchForAmbiguousSymbol(const MergedDfaState& mergedDfa) con
     return 0;
 }
 
-std::unique_ptr<DFA> DFAMinimizer::constructMinimizedDFA() const {
-    auto minimizedDFA = std::make_unique<DFA>();
+DFA DFAMinimizer::constructMinimizedDFA() const {
+    DFA minimizedDFA;
     for (const auto& [id, mergedDfaState] : m_mergedDfaStates) {
-        minimizedDFA->m_states.try_emplace(id, static_cast<size_t>(id), mergedDfaState.isFinal);
+        minimizedDFA.m_states.try_emplace(id, static_cast<size_t>(id), mergedDfaState.isFinal);
     }
 
     for (const auto& [_, mergedDfaState] : m_mergedDfaStates) {
-        mergeTransitions(mergedDfaState, *minimizedDFA);
+        mergeTransitions(mergedDfaState, minimizedDFA);
     }
     const int32_t start = m_DFAToMergedDFA[0];
-    minimizedDFA->setStart(start);
+    minimizedDFA.setStart(start);
     return minimizedDFA;
 }
 

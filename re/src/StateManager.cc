@@ -1,6 +1,7 @@
 #include "REDef.h"
+#include "FA.h"
 #include "StateManager.h"
-#include "REParsingStack.h"
+
 #include <REExceptions.h>
 
 #include <cassert>
@@ -10,156 +11,7 @@ namespace RE
 
 // NFA
 
-NFAState* StateManager::NFAFromRe(std::string_view re) {
-    REParsingStack stack;
-    bool isLastStateRepetition = false;
-    for (auto pos = 0u; pos < re.size(); ++pos) {
-        const auto sym = re[pos];
-        switch (sym)
-        {
-        case EPS: assert(false and "Unexpected end of regex");
-        case BAR:
-            stack.push(parseLastGroup(stack, pos, GroupStartType::bar));
-            stack.pushBar(pos);
-            break;
-        case LEFT_PAREN:
-            stack.pushOpenParen(pos);
-            break;
-        case RIGHT_PAREN:
-            stack.push(parseLastGroup(stack, pos, GroupStartType::parenthesis));
-            break;
-        case LEFT_BRACE: {
-            const auto braceStart = pos;
-            auto numRepetitions = 0u;
-            for (++pos; re[pos] != RIGHT_BRACE; ++pos) {
-                if (pos == re.size()) {
-                    throw MissingBraceException(braceStart);
-                }
-                const auto nextSym = re[pos];
-                if (nextSym < '0' or nextSym > '9') {
-                    throw NondigitInBracesException(nextSym, pos);
-                }
-                numRepetitions = numRepetitions * 10 + (nextSym - '0');
-                if (numRepetitions > MAX_BRACES_REPETITION) {
-                    throw TooLargeRepetitionNumberException();
-                }
-            }
-            if (braceStart + 1 == pos) {
-                throw EmptyBracesException(braceStart);
-            }
-            
-            NFA lastNfa = checkRepetitionAndPopLastNfa(stack, braceStart, isLastStateRepetition);
-            switch (numRepetitions) {
-                case 0:
-                    break;
-                case 1:
-                    stack.push(lastNfa);
-                    break;
-                default: {
-                    for (auto count = 0; count < numRepetitions; count++) {
-                        stack.push(makeCopy(lastNfa));
-                    }
-                }
-            }
-            break;
-        }
-        case RIGHT_BRACE:
-            throw UnbalancedBraceException(pos);
-        case KLEENE_STAR:
-        case PLUS:
-        case QUESTION: {
-            NFA lastNfa = checkRepetitionAndPopLastNfa(stack, pos, isLastStateRepetition);
-            switch (sym) {
-                case KLEENE_STAR:
-                    stack.push(makeKleeneClousure(lastNfa));
-                    break;
-                case PLUS:
-                    stack.push(makePlus(lastNfa));
-                    break;
-                case QUESTION:
-                    stack.push(makeQuestion(lastNfa));
-                    break;
-                default:
-                    assert(false and "Unexpected repeat symbol");
-            }
-            break;
-        }
-        case ESCAPE: {
-            pos++;
-            if (pos == re.size()) {
-                throw EscapeException("Escape reaches the end of the input");
-            }
-            const auto nextSym = re[pos];
-            switch (nextSym) {
-                case BAR:
-                case LEFT_PAREN:
-                case RIGHT_PAREN:
-                case LEFT_BRACE:
-                case RIGHT_BRACE:
-                case KLEENE_STAR:
-                case PLUS:
-                case QUESTION:
-                case ESCAPE:
-                    stack.push(makeSymbol(nextSym));
-                    break;
-                default:
-                    throw EscapeException(nextSym, pos);
-            }
-            break;
-        }
-        default:
-            stack.push(makeSymbol(sym));
-        }
-
-        switch (sym) {
-        case KLEENE_STAR:
-        case PLUS:
-        case QUESTION:
-        case LEFT_BRACE:
-            isLastStateRepetition = true;
-            break;
-        default:
-            isLastStateRepetition = false;
-        }
-    }
-    NFA nfa = parseLastGroup(stack, 0, GroupStartType::re_start);
-    return nfa.startState ? nfa.startState : makeNFAState(true);
-}
-
-StateManager::NFA StateManager::parseLastGroup(REParsingStack& stack, const size_t pos, const GroupStartType type) {
-    while (true) {
-        const auto lastGroupStartType = stack.getLastGroupStart().type;
-        const auto lastGroupStartPosInRe = stack.getLastGroupStart().posInRe;
-        auto nfas = stack.popTillLastGroupStart(type);
-        switch (lastGroupStartType) {
-            case GroupStartType::parenthesis:
-                switch (type) {
-                    case GroupStartType::re_start:
-                        throw MissingParenthsisException(lastGroupStartPosInRe);
-                    case GroupStartType::bar:
-                    case GroupStartType::parenthesis:
-                        return concatenateNFAs(nfas);
-                }
-            case GroupStartType::re_start:
-                switch (type) {
-                    case GroupStartType::parenthesis:
-                        throw UnbalancedParenthesisException(pos);
-                    case GroupStartType::bar:
-                    case GroupStartType::re_start:
-                        return concatenateNFAs(nfas);
-                }
-            case GroupStartType::bar: {
-                NFA nfaAfterBar = concatenateNFAs(nfas);
-                NFA nfaBeforeBar = stack.popOne();
-                stack.push(makeAlternation(nfaBeforeBar, nfaAfterBar));
-                break;
-            }
-        }
-    }
-}
-
-StateManager::NFA StateManager::concatenateNFAs(std::vector<NFA>& nfas)
-{
+NFA StateManager::concatenateNFAs(std::vector<NFA>& nfas) {
     // TODO investigate it
     // NFA emptyNfa;
     // NFA nfa = std::accumulate(nfas.begin(), nfas.end(), emptyNfa,
@@ -180,7 +32,7 @@ NFAState* StateManager::makeNFAState(const bool isFinal) {
     return &(m_NFAs.back());
 }
 
-StateManager::NFA StateManager::makeSymbol(const char sym) {
+NFA StateManager::makeSymbol(const char sym) {
     auto startState = makeNFAState();
     auto endState = makeNFAState(true);
     startState->addTransition(sym, endState);
@@ -188,7 +40,7 @@ StateManager::NFA StateManager::makeSymbol(const char sym) {
     return { startState, endState };
 }
 
-StateManager::NFA StateManager::makeConcatenation(NFA& a, NFA& b) {
+NFA StateManager::makeConcatenation(NFA& a, NFA& b) {
     if (a.isEmpty()) {
         return b;
     }
@@ -200,7 +52,7 @@ StateManager::NFA StateManager::makeConcatenation(NFA& a, NFA& b) {
     return { a.startState, b.endState };
 }
 
-StateManager::NFA StateManager::makeAlternation(NFA& a, NFA& b) {
+NFA StateManager::makeAlternation(NFA& a, NFA& b) {
     if (a.isEmpty() and b.isEmpty()) {
         return a;
     }
@@ -226,35 +78,23 @@ StateManager::NFA StateManager::makeAlternation(NFA& a, NFA& b) {
     return {startState, endState};
 }
 
-StateManager::NFA StateManager::checkRepetitionAndPopLastNfa(
-    REParsingStack& stack, const size_t pos, const bool isLastStateRepetition) {
-    if (stack.getLastGroupStart().posInRe == pos - 1) {
-        throw NothingToRepeatException(pos);
-    }
-    if (isLastStateRepetition) {
-        throw MultipleRepeatException(pos);
-    }
-    NFA lastNfa = stack.popOne();
-    return lastNfa;
-}
-
-StateManager::NFA StateManager::makeKleeneClousure(NFA& nfa) {
+NFA StateManager::makeKleeneClousure(NFA& nfa) {
     nfa.startState->addTransition(EPS, nfa.endState);
     nfa.endState->addTransition(EPS, nfa.startState);
     return { nfa.startState, nfa.endState };
 }
 
-StateManager::NFA StateManager::makePlus(NFA& nfa) {
+NFA StateManager::makePlus(NFA& nfa) {
     nfa.endState->addTransition(EPS, nfa.startState);
     return { nfa.startState, nfa.endState };
 }
 
-StateManager::NFA StateManager::makeQuestion(NFA& nfa) {
+NFA StateManager::makeQuestion(NFA& nfa) {
     nfa.startState->addTransition(EPS, nfa.endState);
     return { nfa.startState, nfa.endState };
 }
 
-StateManager::NFA StateManager::makeCopy(const NFA& nfa) {
+NFA StateManager::makeCopy(const NFA& nfa) {
     if (nfa.isEmpty()) {
         return nfa;
     }

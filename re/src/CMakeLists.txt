@@ -3,6 +3,8 @@ add_library(
     RE
     FA.cc
     RE.cc
+    REParserImpl.cc
+    REParsingStack.cc
     StateManager.cc
     DFAMinimizer.cc
 )

@@ -6,7 +6,6 @@
 #include <vector>
 #include <list>
 #include <map>
-#include <memory>
 #include <set>
 
 namespace RE {
@@ -17,44 +16,11 @@ class REParsingStack;
  * Manages the life cycle of NFA and DFA states
  */
 class StateManager {
-    friend class REParser;
+    friend class REParserImpl;
     friend class DFAMinimizer;
-
-public:
-    struct NFA {
-        NFAState* startState = nullptr;
-        NFAState* endState = nullptr;
-
-        bool isEmpty() const {
-            return startState == nullptr;
-        }
-    };
-
-    enum class GroupStartType {
-        bar = 0u,
-        parenthesis = 1u,
-        re_start = 2u,
-    };
-
-    /**
-     * predecence: re_start > parenthesis > bar
-    */
-    inline static bool hasHigherOrEqualPredecence(const GroupStartType a, const GroupStartType b) {
-        return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b);
-    }
 
 private:
     // NFA
-    NFAState* NFAFromRe(std::string_view);
-    /**
-     * Pop the parsing stack and push the NFA representing a group until:
-     * switch (type)
-     *   GroupStartType::parenthesis:  the last open parenthsis
-     *   GroupStartType::re_start:     the bottom of the stack
-     *   GroupStartType::bar:          the last open parenthsis or the bottom of the stack
-    */
-    NFA parseLastGroup(REParsingStack&, const size_t, const GroupStartType);
-
     NFA concatenateNFAs(std::vector<NFA>&);
 
     NFAState* makeNFAState(const bool isFinal = false);
@@ -63,7 +29,6 @@ private:
     NFA makeConcatenation(NFA&, NFA&);
     NFA makeAlternation(NFA&, NFA&);
 
-    NFA checkRepetitionAndPopLastNfa(REParsingStack&, const size_t, const bool);
     NFA makeKleeneClousure(NFA&);
     NFA makePlus(NFA&);
     NFA makeQuestion(NFA&);
@@ -77,11 +42,11 @@ private:
         NFAStateSet nfasInvolved;
         bool isFinal = false;
 
-        inline bool containsNfaState(NFAState const* nfaState) const {
+        bool containsNfaState(NFAState const* nfaState) const {
             return nfasInvolved.find(nfaState) != nfasInvolved.end();
         }
 
-        inline void addNfaState(NFAState const* nfaState) {
+        void addNfaState(NFAState const* nfaState) {
             nfasInvolved.insert(nfaState);
         }
     };

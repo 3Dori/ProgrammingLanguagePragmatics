@@ -33,6 +33,13 @@ private:
     std::map<char, NFAStateSet> m_transitions;
 };
 
+struct NFA {
+    NFAState* startState = nullptr;
+    NFAState* endState = nullptr;
+
+    bool isEmpty() const { return startState == nullptr; }
+};
+
 class DFAState {
     friend class DFAMinimizer;
 
@@ -80,7 +87,7 @@ class DFA {
     friend class DFAMinimizer;
 
 public:
-    inline bool accept(std::string_view str) const {
+    bool accept(std::string_view str) const {
         return m_start->accept(str);
     }
 

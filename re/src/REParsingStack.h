@@ -1,70 +1,60 @@
 #pragma once
 
 #include "FA.h"
-#include "REDef.h"
-#include "StateManager.h"
 
 #include <vector>
-#include <list>
-#include <map>
-#include <memory>
-#include <set>
 
 namespace RE
 {
 
 class REParsingStack {
-    using Stack_t = std::vector<StateManager::NFA>;
+    friend class REParserImpl;
 
-public:
+    using Stack_t = std::vector<NFA>;
+
+private:
+    enum class GroupStartType {
+        bar = 0u,
+        parenthesis = 1u,
+        re_start = 2u,
+    };
+
+    /**
+     * predecence: re_start > parenthesis > bar
+     */
+    static bool hasHigherOrEqualPredecence(const GroupStartType a, const GroupStartType b) {
+        return static_cast<uint32_t>(a) >= static_cast<uint32_t>(b);
+    }
+
     struct GroupStart {
         const size_t posInStack;
         const int32_t posInRe;
-        StateManager::GroupStartType type;
+        GroupStartType type;
     };
 
-    inline const GroupStart& getLastGroupStart() const {
+    const GroupStart& getLastGroupStart() const {
         return m_groupStarts.back();
     }
 
-    inline bool isEmpty() const {
-        return m_stack.empty();
+    bool isEmpty() const { return m_stack.empty(); }
+    void push(const NFA& nfa) { m_stack.push_back(nfa); }
+
+    void pushOpenParen(const int32_t posInRe) {
+        m_groupStarts.push_back(
+            {m_stack.size(), posInRe, GroupStartType::parenthesis});
     }
 
-    inline void push(const StateManager::NFA& nfa) {
-        m_stack.push_back(nfa);
+    void pushBar(const int32_t posInRe) {
+        m_groupStarts.push_back({m_stack.size(), posInRe, GroupStartType::bar});
     }
 
-    inline void pushOpenParen(const int32_t posInRe) {
-        m_groupStarts.push_back({m_stack.size(), posInRe, StateManager::GroupStartType::parenthesis});
-    }
+    NFA popOne();
+    NFA checkRepetitionAndPopLastNfa(const size_t, const bool);
+    Stack_t popTillLastGroupStart(const GroupStartType);
 
-    inline void pushBar(const int32_t posInRe) {
-        m_groupStarts.push_back({m_stack.size(), posInRe, StateManager::GroupStartType::bar});
-    }
-
-    inline StateManager::NFA popOne() {
-        const auto ret = m_stack.back();
-        m_stack.pop_back();
-        return ret;
-    }
-
-    inline Stack_t popTillLastGroupStart(const StateManager::GroupStartType type) {
-        // Pop last group start
-        const auto lastGroupStartPosInStack = getLastGroupStart().posInStack;
-        if (StateManager::hasHigherOrEqualPredecence(type, getLastGroupStart().type)) {
-            m_groupStarts.pop_back();
-        }
-        // Pop nfas till last group start
-        const auto ret = Stack_t(m_stack.begin() + lastGroupStartPosInStack, m_stack.end());
-        m_stack.resize(lastGroupStartPosInStack);
-
-        return ret;
-    }
-    
 private:
     Stack_t m_stack;
-    std::vector<GroupStart> m_groupStarts{{0u, -1, StateManager::GroupStartType::re_start}};
+    std::vector<GroupStart> m_groupStarts{{0u, -1, GroupStartType::re_start}};
 };
 
 } // namespace RE
