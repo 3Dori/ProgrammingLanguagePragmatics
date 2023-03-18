@@ -19,6 +19,7 @@ include_directories(${PROJECT_SOURCE_DIR}/RE/inc/)
 add_executable(
     RETest
     RE/test/RETest.cc
+    RE/test/RETestEscape.cc
 )
 target_link_libraries(
     RETest

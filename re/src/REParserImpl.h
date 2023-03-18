@@ -36,8 +36,7 @@ private:
      * switch (type)
      *   GroupStartType::parenthesis:  the last open parenthsis
      *   GroupStartType::re_start:     the bottom of the stack
-     *   GroupStartType::bar:          the last open parenthsis or the bottom of
-     * the stack
+     *   GroupStartType::bar:          the last open parenthsis or the bottom of the stack
      */
     NFA makeLastGroup(const REParsingStack::GroupStartType);
 
@@ -45,7 +44,9 @@ private:
         m_stack.push(makeLastGroup(REParsingStack::GroupStartType::bar));
         m_stack.pushBar(m_pos);
     }
-    void parseLeftParen() { m_stack.pushOpenParen(m_pos); }
+    void parseLeftParen() {
+        m_stack.pushOpenParen(m_pos);
+    }
     void parseRightParen() {
         m_stack.push(
             makeLastGroup(REParsingStack::GroupStartType::parenthesis));

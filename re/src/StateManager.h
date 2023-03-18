@@ -28,6 +28,8 @@ private:
     NFA makeSymbol(const char);
     NFA makeConcatenation(NFA&, NFA&);
     NFA makeAlternation(NFA&, NFA&);
+    NFA makeAlternation(std::vector<NFA>&);
+    NFA makeDigit();
 
     NFA makeKleeneClousure(NFA&);
     NFA makePlus(NFA&);

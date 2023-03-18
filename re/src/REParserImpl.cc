@@ -21,7 +21,7 @@ REParserImpl::REParserImpl(REParser::RE_t re) :
 NFAState* REParserImpl::NFAFromRe(REParser::RE_t re) {
     for (char lastSym = 0;
          m_pos < m_re.size();
-         advance(), lastSym = m_sym)
+         m_isLastStateRepetition = checkIsLastStateRepetition(lastSym), advance(), lastSym = m_sym)
     {
         switch (m_sym) {
         case EPS:
@@ -51,8 +51,6 @@ NFAState* REParserImpl::NFAFromRe(REParser::RE_t re) {
         default:
             parseSym();
         }
-
-        m_isLastStateRepetition = checkIsLastStateRepetition(lastSym);
     }
     NFA nfa = makeLastGroup(REParsingStack::GroupStartType::re_start);
     return nfa.isEmpty() ?
@@ -193,6 +191,9 @@ void REParserImpl::parseEscape() {
         case QUESTION:
         case ESCAPE:
             m_stack.push(m_stateManager.makeSymbol(m_sym));
+            break;
+        case ESCAPE_D:
+            m_stack.push(m_stateManager.makeDigit());
             break;
         default:
             throw EscapeException(m_sym, m_pos);

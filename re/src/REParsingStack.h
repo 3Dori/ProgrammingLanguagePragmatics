@@ -40,8 +40,7 @@ private:
     void push(const NFA& nfa) { m_stack.push_back(nfa); }
 
     void pushOpenParen(const int32_t posInRe) {
-        m_groupStarts.push_back(
-            {m_stack.size(), posInRe, GroupStartType::parenthesis});
+        m_groupStarts.push_back({m_stack.size(), posInRe, GroupStartType::parenthesis});
     }
 
     void pushBar(const int32_t posInRe) {

@@ -17,6 +17,7 @@ enum ReservedSymbol {
     PLUS = '+',
     QUESTION = '?',
     ESCAPE = '\\',
+    ESCAPE_D = 'd',
 };
 
 using NFAStateSet = std::set<NFAState const*>;

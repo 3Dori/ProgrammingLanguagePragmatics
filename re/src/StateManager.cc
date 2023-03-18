@@ -75,7 +75,28 @@ NFA StateManager::makeAlternation(NFA& a, NFA& b) {
     a.endState->addTransition(EPS, endState);
     b.endState->addTransition(EPS, endState);
 
-    return {startState, endState};
+    return { startState, endState };
+}
+
+NFA StateManager::makeAlternation(std::vector<NFA>& nfas) {
+    auto startState = makeNFAState();
+    auto endState = makeNFAState(true);
+
+    for (auto nfa : nfas) {
+        nfa.endState->m_isFinal = false;
+        startState->addTransition(EPS, nfa.startState);
+        nfa.endState->addTransition(EPS, endState);
+    }
+
+    return { startState, endState };
+}
+
+NFA StateManager::makeDigit() {
+    std::vector<NFA> digits;
+    for (auto d = '0'; d <= '9'; d++) {
+        digits.push_back(makeSymbol(d));
+    }
+    return makeAlternation(digits);
 }
 
 NFA StateManager::makeKleeneClousure(NFA& nfa) {
