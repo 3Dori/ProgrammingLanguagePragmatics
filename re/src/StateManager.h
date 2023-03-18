@@ -71,8 +71,6 @@ private:
     std::list<NFAState> m_NFAs;
     /* unlike unordered_map, maps don't change their capacity */
     std::map<NFAStateSet, DFAStateFromNFA> m_DFAs;
-
-    std::vector<DFAStateFromNFA*> m_DFAsIndexed;  // TODO refactor out this, the interface to call minimize is weird
 };
 
 } // namespace RE

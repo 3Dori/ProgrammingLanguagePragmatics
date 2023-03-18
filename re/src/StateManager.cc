@@ -128,8 +128,11 @@ DFAStateFromNFA* StateManager::DFAFromNFA(NFAState const* nfa) {
 DFAStateFromNFA* StateManager::getDFAState(const DFAInfo& dfaInfo) {
     const auto nfasInvolved = dfaInfo.nfasInvolved;
     if (m_DFAs.find(dfaInfo.nfasInvolved) == m_DFAs.end()) {
-        const auto& [keyValue, _] = m_DFAs.try_emplace(dfaInfo.nfasInvolved, m_DFAs.size(), dfaInfo.isFinal, dfaInfo.nfasInvolved);
-        m_DFAsIndexed.push_back(&(keyValue->second));
+        m_DFAs.try_emplace(
+            dfaInfo.nfasInvolved,
+            m_DFAs.size(),
+            dfaInfo.isFinal,
+            dfaInfo.nfasInvolved);
     }
     return &(m_DFAs.at(nfasInvolved));
 }

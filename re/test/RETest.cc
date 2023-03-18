@@ -128,8 +128,8 @@ TEST_P(RETestKleeneStar, CanParseAndMatchExactKleeneStarForBasicSym_1) {
     EXPECT_FALSE(parser.matchExact("11a11111"));
 }
 
-INSTANTIATE_TEST_CASE_P(TestRepetition, RETestKleeneStar,
-                        Values("1*", "(1+)?", "(1+)*", "(1?)+", "(1?)*", "(1*)?", "(1*)+", "(1*)*", "((1+)?)+"));
+INSTANTIATE_TEST_SUITE_P(TestRepetition, RETestKleeneStar,
+                         Values("1*", "(1+)?", "(1+)*", "(1?)+", "(1?)*", "(1*)?", "(1*)+", "(1*)*", "((1+)?)+"));
 
 TEST(RETest, CanParseAndMatchExactKleeneStarForBasicSym_2) {
     RE::REParser parser("1*ab*");
@@ -168,8 +168,8 @@ TEST_P(RETestPlus, CanParseAndMatchExactPlus_1) {
     EXPECT_FALSE(parser.matchExact("baa"));
 }
 
-INSTANTIATE_TEST_CASE_P(TestRepetition, RETestPlus,
-                        Values("a+", "(a+)+", "aa*"));
+INSTANTIATE_TEST_SUITE_P(TestRepetition, RETestPlus,
+                         Values("a+", "(a+)+", "aa*"));
 
 TEST(RETest, CanParseAndMatchExactPlus_2) {
     RE::REParser parser("a+b+1");
@@ -210,8 +210,8 @@ TEST_P(RETestQuestion, CanParseAndMatchExactQuestion_1) {
     EXPECT_FALSE(parser.matchExact("baaa"));
 }
 
-INSTANTIATE_TEST_CASE_P(TestRepetition, RETestQuestion,
-                        Values("a?", "(a?)?", "|a"));
+INSTANTIATE_TEST_SUITE_P(TestRepetition, RETestQuestion,
+                         Values("a?", "(a?)?", "|a"));
 
 TEST(RETest, CanParseAndMatchExactQuestion_2) {
     RE::REParser parser("1a?b?");
@@ -367,8 +367,8 @@ TEST_P(RETestEscape, CanPArserAndMatchSingleEscapes) {
     EXPECT_TRUE(getParser().matchExact(getStr()));
 }
 
-INSTANTIATE_TEST_CASE_P(TestEscape, RETestEscape,
-                        Values('(', ')', '{', '}', '|', '*', '+', '?', '\\'));
+INSTANTIATE_TEST_SUITE_P(TestEscape, RETestEscape,
+                         Values('(', ')', '{', '}', '|', '*', '+', '?', '\\'));
 
 TEST(RETest, CanParseAndMatchEscapes) {
     EXPECT_TRUE(RE::REParser(R"(\++)").matchExact("+"));
