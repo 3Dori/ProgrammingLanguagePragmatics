@@ -40,6 +40,7 @@ private:
      * the stack
      */
     NFA makeLastGroup(const REParsingStack::GroupStartType);
+
     void parseBar() {
         m_stack.push(makeLastGroup(REParsingStack::GroupStartType::bar));
         m_stack.pushBar(m_pos);
