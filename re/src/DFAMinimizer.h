@@ -7,8 +7,7 @@
 #include <set>
 #include <vector>
 
-namespace RE
-{
+namespace RE {
 
 class StateManager;
 

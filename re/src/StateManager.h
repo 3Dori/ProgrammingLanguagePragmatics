@@ -29,7 +29,10 @@ private:
     NFA makeConcatenation(NFA&, NFA&);
     NFA makeAlternation(NFA&, NFA&);
     NFA makeAlternation(std::vector<NFA>&);
-    NFA makeDigit();
+    NFA makeCharset(std::string_view);
+    NFA makeDigit() {
+        return makeCharset("0123456789");
+    }
 
     NFA makeKleeneClousure(NFA&);
     NFA makePlus(NFA&);

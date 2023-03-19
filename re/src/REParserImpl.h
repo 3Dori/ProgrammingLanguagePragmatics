@@ -8,8 +8,7 @@
 
 #include <string_view>
 
-namespace RE
-{
+namespace RE {
 
 class REParserImpl {
 public:

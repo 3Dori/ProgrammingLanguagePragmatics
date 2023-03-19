@@ -6,8 +6,7 @@
 
 #include <cassert>
 
-namespace RE
-{
+namespace RE {
 
 // NFA
 
@@ -91,12 +90,12 @@ NFA StateManager::makeAlternation(std::vector<NFA>& nfas) {
     return { startState, endState };
 }
 
-NFA StateManager::makeDigit() {
-    std::vector<NFA> digits;
-    for (auto d = '0'; d <= '9'; d++) {
-        digits.push_back(makeSymbol(d));
+NFA StateManager::makeCharset(std::string_view charset) {
+    std::vector<NFA> syms;
+    for (auto sym : charset) {
+        syms.push_back(makeSymbol(sym));
     }
-    return makeAlternation(digits);
+    return makeAlternation(syms);
 }
 
 NFA StateManager::makeKleeneClousure(NFA& nfa) {

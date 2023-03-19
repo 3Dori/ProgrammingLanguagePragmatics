@@ -3,8 +3,7 @@
 
 #include <RE.h>
 
-namespace RE
-{
+namespace RE {
 
 // NFA
 void NFAState::addTransition(const char sym, NFAState const* to) {

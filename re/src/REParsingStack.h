@@ -4,8 +4,7 @@
 
 #include <vector>
 
-namespace RE
-{
+namespace RE {
 
 class REParsingStack {
     friend class REParserImpl;

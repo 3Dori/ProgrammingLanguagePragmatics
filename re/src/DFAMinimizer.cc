@@ -3,8 +3,7 @@
 
 #include <algorithm>
 
-namespace RE
-{
+namespace RE {
 
 DFAMinimizer::DFAMinimizer(StateManager& stateManager) {
     addDeadState(stateManager);

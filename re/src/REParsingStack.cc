@@ -2,8 +2,7 @@
 
 #include <REExceptions.h>
 
-namespace RE
-{
+namespace RE {
 
 NFA REParsingStack::popOne() {
     const auto ret = m_stack.back();

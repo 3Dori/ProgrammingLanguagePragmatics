@@ -4,8 +4,7 @@
 
 #include <REExceptions.h>
 
-namespace RE
-{
+namespace RE {
 
 REParserImpl::REParserImpl(REParser::RE_t re) :
     m_re(re),
