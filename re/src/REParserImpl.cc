@@ -191,6 +191,15 @@ void REParserImpl::parseEscape() {
         case ESCAPE:
             m_stack.push(m_stateManager.makeSymbol(m_sym));
             break;
+        case ESCAPE_N:
+            m_stack.push(m_stateManager.makeSymbol('\n'));
+            break;
+        case ESCAPE_T:
+            m_stack.push(m_stateManager.makeSymbol('\t'));
+            break;
+        case ESCAPE_R:
+            m_stack.push(m_stateManager.makeSymbol('\r'));
+            break;
         case ESCAPE_D:
             m_stack.push(m_stateManager.makeDigit());
             break;

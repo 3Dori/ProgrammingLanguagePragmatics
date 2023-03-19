@@ -33,7 +33,7 @@ TEST_P(RETestEscape, CanPArserAndMatchSingleEscapes) {
 INSTANTIATE_TEST_SUITE_P(TestEscape, RETestEscape,
                          Values('(', ')', '{', '}', '|', '*', '+', '?', '\\'));
 
-TEST(RETest, CanParseAndMatchEscapes) {
+TEST(RETest, CanParseAndMatchEscapes_RegexReserved) {
     EXPECT_TRUE(RE::REParser(R"(\++)").matchExact("+"));
     EXPECT_TRUE(RE::REParser(R"(a*\++)").matchExact("aa+++"));
     EXPECT_FALSE(RE::REParser(R"(a*\++)").matchExact("aa"));
@@ -45,6 +45,27 @@ TEST(RETest, CanParseAndMatchEscapes) {
 
     EXPECT_TRUE(RE::REParser(R"(\+\|\\)").matchExact(R"(+|\)"));
     EXPECT_TRUE(RE::REParser(R"(\+-\*/%)").matchExact("+-*/%"));
+}
+
+TEST(RETest, CanParseAndMatchEscapes_SpecialEscapes) {
+    EXPECT_TRUE(RE::REParser(R"(\n)").matchExact("\n"));
+    EXPECT_TRUE(RE::REParser(R"(\t)").matchExact("\t"));
+    EXPECT_TRUE(RE::REParser(R"(\r)").matchExact("\r"));
+
+    EXPECT_FALSE(RE::REParser(R"(\n)").matchExact("n"));
+    EXPECT_FALSE(RE::REParser(R"(\t)").matchExact("t"));
+    EXPECT_FALSE(RE::REParser(R"(\r)").matchExact("r"));
+
+    EXPECT_TRUE(RE::REParser(R"(\n\t)").matchExact("\n\t"));
+    EXPECT_TRUE(RE::REParser(R"(\t\n)").matchExact("\t\n"));
+    EXPECT_TRUE(RE::REParser(R"(\n\r)").matchExact("\n\r"));
+
+    EXPECT_FALSE(RE::REParser(R"(\n\t)").matchExact("\n\n"));
+    EXPECT_FALSE(RE::REParser(R"(\n\r)").matchExact("\t\r"));
+
+    EXPECT_TRUE(RE::REParser(R"(\n*)").matchExact("\n\n"));
+    EXPECT_TRUE(RE::REParser(R"(\t?)").matchExact(""));
+    EXPECT_TRUE(RE::REParser(R"(\r+)").matchExact("\r"));
 }
 
 TEST(RETest, CanParseAndMatchDigits_1) {
