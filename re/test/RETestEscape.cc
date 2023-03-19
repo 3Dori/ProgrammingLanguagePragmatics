@@ -89,7 +89,7 @@ TEST(RETest, CanParseAndMatchDigits_1) {
 }
 
 TEST(RETest, CanParseAndMatchDigits_2) {
-    RE::REParser parser(R"(\d*)");
+    RE::REParser parser(R"(\D*)");
     EXPECT_TRUE(parser.matchExact(""));
     EXPECT_TRUE(parser.matchExact("0"));
     EXPECT_TRUE(parser.matchExact("100"));
@@ -100,7 +100,7 @@ TEST(RETest, CanParseAndMatchDigits_2) {
 }
 
 TEST(RETest, CanParseAndMatchDigits_3) {  // TODO match real-life numerics
-    RE::REParser parser(R"(-?\d+.?\d*)");  // TODO . is wildcard
+    RE::REParser parser(R"(-?\d+.?\D*)");  // TODO . is wildcard
     EXPECT_TRUE(parser.matchExact("0"));
     EXPECT_TRUE(parser.matchExact("0.3423"));
     EXPECT_TRUE(parser.matchExact("0000.3423"));
